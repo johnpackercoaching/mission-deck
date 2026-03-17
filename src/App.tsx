@@ -1,16 +1,47 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from './auth/AuthContext'
 import { TEAMS } from './config'
 import { TeamPanel } from './components/TeamPanel'
 import { LoginPage } from './components/LoginPage'
+import { SearchBar, type StatusFilter } from './components/SearchBar'
+import { TeamDetailModal } from './components/TeamDetailModal'
 import { seedDatabase, checkDataExists } from './data/seed'
 import { useConnectionStatus } from './hooks/useConnectionStatus'
+import { useData } from './services/data'
+import { TeamDataSchema } from './schemas'
+
+function useAllTeamData() {
+  // Subscribe to all teams' data for filtering
+  // TEAMS is a static constant, so hook count is stable
+  const t01 = useData('teams/t01', TeamDataSchema)
+  const t02 = useData('teams/t02', TeamDataSchema)
+  const t03 = useData('teams/t03', TeamDataSchema)
+
+  return useMemo(() => ({
+    t01: t01.data,
+    t02: t02.data,
+    t03: t03.data,
+  }), [t01.data, t02.data, t03.data])
+}
+
+function getTeamStatus(teamData: { agents?: Record<string, { status: string }> } | null): 'active' | 'error' | 'idle' {
+  if (!teamData?.agents) return 'idle'
+  const statuses = Object.values(teamData.agents).map(a => a.status)
+  if (statuses.includes('error')) return 'error'
+  if (statuses.includes('active')) return 'active'
+  return 'idle'
+}
 
 export default function App() {
   const { user, loading, signOut } = useAuth()
   const connected = useConnectionStatus()
   const [seeding, setSeeding] = useState(false)
   const [hasData, setHasData] = useState<boolean | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [selectedTeam, setSelectedTeam] = useState<{ id: string; name: string } | null>(null)
+
+  const allTeamData = useAllTeamData()
 
   const checkData = useCallback(async () => {
     try {
@@ -38,6 +69,40 @@ export default function App() {
       setSeeding(false)
     }
   }
+
+  // Compute team statuses and filter
+  const teamsWithStatus = useMemo(() => {
+    return TEAMS.map((team) => {
+      const data = allTeamData[team.id as keyof typeof allTeamData] ?? null
+      const status = getTeamStatus(data)
+      const displayName = data?.name ?? team.name
+      return { ...team, status, displayName, data }
+    })
+  }, [allTeamData])
+
+  const statusCounts = useMemo(() => {
+    const counts = { all: TEAMS.length, active: 0, error: 0, idle: 0 }
+    for (const t of teamsWithStatus) {
+      counts[t.status]++
+    }
+    return counts
+  }, [teamsWithStatus])
+
+  const filteredTeams = useMemo(() => {
+    return teamsWithStatus.filter((team) => {
+      // Search filter: match against display name (case-insensitive)
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase()
+        const nameMatch = team.displayName.toLowerCase().includes(query)
+        if (!nameMatch) return false
+      }
+      // Status filter
+      if (statusFilter !== 'all' && team.status !== statusFilter) {
+        return false
+      }
+      return true
+    })
+  }, [teamsWithStatus, searchQuery, statusFilter])
 
   if (loading) {
     return (
@@ -103,17 +168,68 @@ export default function App() {
             </button>
           </div>
         </div>
+
+        {/* Search and filter bar */}
+        <div className="px-6 pb-4">
+          <SearchBar
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            statusCounts={statusCounts}
+          />
+        </div>
       </header>
 
       <main className="p-6">
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {TEAMS.map((team, index) => (
-            <div key={team.id} className="animate-fade-in" style={{ animationDelay: `${index * 80}ms` }}>
-              <TeamPanel teamId={team.id} teamName={team.name} />
-            </div>
-          ))}
-        </div>
+        {filteredTeams.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <svg
+              className="w-12 h-12 text-neutral-700 mb-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <p className="text-neutral-400 text-sm mb-1">No teams match your search</p>
+            <p className="text-neutral-600 text-xs">
+              Try adjusting your search query or status filter
+            </p>
+            <button
+              onClick={() => { setSearchQuery(''); setStatusFilter('all') }}
+              className="focus-ring mt-4 text-xs text-accent-400 hover:text-accent-300 transition-colors duration-150"
+              data-testid="clear-filters"
+            >
+              Clear all filters
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {filteredTeams.map((team, index) => (
+              <div key={team.id} className="animate-fade-in" style={{ animationDelay: `${index * 80}ms` }}>
+                <TeamPanel
+                  teamId={team.id}
+                  teamName={team.name}
+                  onClick={() => setSelectedTeam({ id: team.id, name: team.displayName })}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </main>
+
+      {/* Team Detail Modal */}
+      {selectedTeam && (
+        <TeamDetailModal
+          teamId={selectedTeam.id}
+          teamName={selectedTeam.name}
+          isOpen={true}
+          onClose={() => setSelectedTeam(null)}
+        />
+      )}
     </div>
   )
 }

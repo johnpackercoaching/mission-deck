@@ -9,9 +9,10 @@ import { AgentRoster } from './AgentRoster'
 interface TeamPanelProps {
   teamId: string
   teamName: string
+  onClick?: () => void
 }
 
-export function TeamPanel({ teamId, teamName }: TeamPanelProps) {
+export function TeamPanel({ teamId, teamName, onClick }: TeamPanelProps) {
   const { data, loading, error } = useData(`teams/${teamId}`, TeamDataSchema)
 
   if (loading) {
@@ -56,7 +57,14 @@ export function TeamPanel({ teamId, teamName }: TeamPanelProps) {
       data-testid={`team-panel-${teamId}`}
     >
       {/* Header with accent top border */}
-      <div className="border-b border-neutral-800/40 px-5 py-4">
+      <div
+        className={`border-b border-neutral-800/40 px-5 py-4 ${onClick ? 'cursor-pointer hover:bg-neutral-800/30 transition-colors duration-150' : ''}`}
+        onClick={onClick}
+        onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } } : undefined}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        aria-label={onClick ? `View details for ${name || teamName}` : undefined}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {activeAgentCount > 0 ? (
@@ -65,6 +73,18 @@ export function TeamPanel({ teamId, teamName }: TeamPanelProps) {
               <div className="w-2 h-2 rounded-full bg-neutral-600" aria-label="Agents idle" />
             )}
             <h2 className="text-lg font-semibold text-neutral-100">{name || teamName}</h2>
+            {onClick && (
+              <svg
+                className="w-4 h-4 text-neutral-600 group-hover:text-neutral-400 transition-colors duration-150"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            )}
           </div>
           <div className="flex items-center gap-2 text-xs text-neutral-500">
             {activeAgentCount > 0 && (

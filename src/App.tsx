@@ -1,8 +1,9 @@
-import { useState, useMemo, lazy, Suspense } from 'react'
+import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react'
 import { useAuth } from './auth/AuthContext'
 import { TEAMS } from './config'
 import { TeamPanel } from './components/TeamPanel'
 import { SearchBar, type StatusFilter } from './components/SearchBar'
+import { TeamSelector } from './components/TeamSelector'
 import { useConnectionStatus } from './hooks/useConnectionStatus'
 import { useData } from './services/data'
 import { TeamDataSchema } from './schemas'
@@ -10,12 +11,18 @@ import { TeamDataSchema } from './schemas'
 const LoginPage = lazy(() => import('./components/LoginPage').then(m => ({ default: m.LoginPage })))
 const TeamDetailModal = lazy(() => import('./components/TeamDetailModal').then(m => ({ default: m.TeamDetailModal })))
 
+const STORAGE_KEY = 'mission-deck-focused-team'
+
 function useAllTeamData() {
   const t01 = useData('teams/t01', TeamDataSchema)
+  const t02 = useData('teams/t02', TeamDataSchema)
+  const t03 = useData('teams/t03', TeamDataSchema)
 
   return useMemo(() => ({
     t01: t01.data,
-  }), [t01.data])
+    t02: t02.data,
+    t03: t03.data,
+  }), [t01.data, t02.data, t03.data])
 }
 
 function getTeamStatus(teamData: { agents?: Record<string, { status: string }> } | null): 'active' | 'error' | 'idle' {
@@ -26,16 +33,48 @@ function getTeamStatus(teamData: { agents?: Record<string, { status: string }> }
   return 'idle'
 }
 
+function getInitialFocusedTeam(): string | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored === null) return null
+    if (TEAMS.some(t => t.id === stored)) return stored
+    return null
+  } catch {
+    return null
+  }
+}
+
 export default function App() {
   const { user, loading, signOut } = useAuth()
   const connected = useConnectionStatus()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [selectedTeam, setSelectedTeam] = useState<{ id: string; name: string } | null>(null)
+  const [focusedTeamId, setFocusedTeamId] = useState<string | null>(getInitialFocusedTeam)
 
   const allTeamData = useAllTeamData()
 
-  // Compute team statuses and filter
+  // Persist focused team to localStorage
+  useEffect(() => {
+    try {
+      if (focusedTeamId === null) {
+        localStorage.removeItem(STORAGE_KEY)
+      } else {
+        localStorage.setItem(STORAGE_KEY, focusedTeamId)
+      }
+    } catch {
+      // localStorage unavailable
+    }
+  }, [focusedTeamId])
+
+  const handleSelectTeam = useCallback((teamId: string | null) => {
+    setFocusedTeamId(teamId)
+    if (teamId !== null) {
+      setSearchQuery('')
+      setStatusFilter('all')
+    }
+  }, [])
+
   const teamsWithStatus = useMemo(() => {
     return TEAMS.map((team) => {
       const data = allTeamData[team.id as keyof typeof allTeamData] ?? null
@@ -55,19 +94,21 @@ export default function App() {
 
   const filteredTeams = useMemo(() => {
     return teamsWithStatus.filter((team) => {
-      // Search filter: match against display name (case-insensitive)
       if (searchQuery) {
         const query = searchQuery.toLowerCase()
         const nameMatch = team.displayName.toLowerCase().includes(query)
         if (!nameMatch) return false
       }
-      // Status filter
       if (statusFilter !== 'all' && team.status !== statusFilter) {
         return false
       }
       return true
     })
   }, [teamsWithStatus, searchQuery, statusFilter])
+
+  const focusedTeam = focusedTeamId
+    ? teamsWithStatus.find(t => t.id === focusedTeamId) ?? null
+    : null
 
   if (loading) {
     return (
@@ -111,7 +152,7 @@ export default function App() {
               </h1>
             </div>
             <span className="text-xs text-neutral-600 font-mono hidden sm:inline" aria-label="Team count">
-              {TEAMS.length} teams
+              {focusedTeam ? `Viewing ${focusedTeam.displayName}` : `${TEAMS.length} teams`}
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -128,59 +169,80 @@ export default function App() {
           </div>
         </div>
 
-        {/* Search and filter bar */}
-        <div className="px-6 pb-4">
-          <SearchBar
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            statusFilter={statusFilter}
-            onStatusFilterChange={setStatusFilter}
-            statusCounts={statusCounts}
+        {/* Team selector tabs */}
+        <div className="px-6 pb-3">
+          <TeamSelector
+            teams={teamsWithStatus.map(t => ({ id: t.id, name: t.displayName, status: t.status }))}
+            focusedTeamId={focusedTeamId}
+            onSelectTeam={handleSelectTeam}
           />
         </div>
+
+        {/* Search and filter bar — only in grid (All Teams) view */}
+        {focusedTeamId === null && (
+          <div className="px-6 pb-4">
+            <SearchBar
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
+              statusCounts={statusCounts}
+            />
+          </div>
+        )}
       </header>
 
-      <main className="p-6">
-        {filteredTeams.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <svg
-              className="w-12 h-12 text-neutral-700 mb-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}
-              aria-hidden="true"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <p className="text-neutral-400 text-sm mb-1">No teams match your search</p>
-            <p className="text-neutral-600 text-xs">
-              Try adjusting your search query or status filter
-            </p>
-            <button
-              onClick={() => { setSearchQuery(''); setStatusFilter('all') }}
-              className="focus-ring mt-4 text-xs text-accent-400 hover:text-accent-300 transition-colors duration-150"
-              data-testid="clear-filters"
-            >
-              Clear all filters
-            </button>
-          </div>
+      <main className="p-6" id="team-content" role="tabpanel">
+        {focusedTeamId === null ? (
+          filteredTeams.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <svg
+                className="w-12 h-12 text-neutral-700 mb-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <p className="text-neutral-400 text-sm mb-1">No teams match your search</p>
+              <p className="text-neutral-600 text-xs">
+                Try adjusting your search query or status filter
+              </p>
+              <button
+                onClick={() => { setSearchQuery(''); setStatusFilter('all') }}
+                className="focus-ring mt-4 text-xs text-accent-400 hover:text-accent-300 transition-colors duration-150"
+                data-testid="clear-filters"
+              >
+                Clear all filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {filteredTeams.map((team, index) => (
+                <div key={team.id} className="animate-fade-in" style={{ animationDelay: `${index * 80}ms` }}>
+                  <TeamPanel
+                    teamId={team.id}
+                    teamName={team.name}
+                    onClick={() => setSelectedTeam({ id: team.id, name: team.displayName })}
+                  />
+                </div>
+              ))}
+            </div>
+          )
         ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {filteredTeams.map((team, index) => (
-              <div key={team.id} className="animate-fade-in" style={{ animationDelay: `${index * 80}ms` }}>
-                <TeamPanel
-                  teamId={team.id}
-                  teamName={team.name}
-                  onClick={() => setSelectedTeam({ id: team.id, name: team.displayName })}
-                />
-              </div>
-            ))}
-          </div>
+          focusedTeam && (
+            <div className="max-w-5xl mx-auto animate-fade-in">
+              <TeamPanel
+                teamId={focusedTeam.id}
+                teamName={focusedTeam.name}
+              />
+            </div>
+          )
         )}
       </main>
 
-      {/* Team Detail Modal */}
       {selectedTeam && (
         <Suspense fallback={null}>
           <TeamDetailModal

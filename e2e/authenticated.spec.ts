@@ -38,7 +38,7 @@ test.describe('Mission Deck - Authenticated Dashboard', () => {
   })
 
   test('team count indicator shows in header', async ({ page }) => {
-    await expect(page.locator('text=1 teams')).toBeVisible()
+    await expect(page.locator('text=3 teams')).toBeVisible()
   })
 
   test('connection status indicator exists in header', async ({ page }) => {
@@ -166,7 +166,6 @@ test.describe('Mission Deck - Authenticated Dashboard', () => {
     const panel = page.locator('[data-testid="team-panel-t01"]')
     await expect(panel).toBeVisible({ timeout: 10000 })
 
-    // Expand the first agent (project-resume-agent)
     const agentButton = panel.locator('[aria-controls="prompt-project-resume-agent"]')
     await expect(agentButton).toBeVisible()
     await agentButton.click()
@@ -174,17 +173,14 @@ test.describe('Mission Deck - Authenticated Dashboard', () => {
     const textarea = panel.locator('#textarea-project-resume-agent')
     await expect(textarea).toBeVisible({ timeout: 3000 })
 
-    // Verify prompt is pre-filled (not empty, not placeholder)
     const originalValue = await textarea.inputValue()
     expect(originalValue.length).toBeGreaterThan(100)
     expect(originalValue).toContain('UserPrompt')
 
-    // Edit: append a period
     await textarea.fill(originalValue + '.')
     const editedValue = await textarea.inputValue()
     expect(editedValue).toBe(originalValue + '.')
 
-    // Revert: remove the period
     await textarea.fill(originalValue)
     const revertedValue = await textarea.inputValue()
     expect(revertedValue).toBe(originalValue)
@@ -197,5 +193,80 @@ test.describe('Mission Deck - Authenticated Dashboard', () => {
     await page.keyboard.press('/')
 
     await expect(searchInput).toBeFocused()
+  })
+
+  // === Team Selector Tests ===
+
+  test('team selector is visible with All and individual team tabs', async ({ page }) => {
+    const allTab = page.locator('[data-testid="team-tab-all"]')
+    await expect(allTab).toBeVisible()
+    await expect(allTab).toHaveAttribute('role', 'tab')
+    await expect(allTab).toHaveAttribute('aria-selected', 'true')
+
+    await expect(page.locator('[data-testid="team-tab-t01"]')).toBeVisible()
+    await expect(page.locator('[data-testid="team-tab-t02"]')).toBeVisible()
+    await expect(page.locator('[data-testid="team-tab-t03"]')).toBeVisible()
+  })
+
+  test('clicking team tab switches to focused single-team view', async ({ page }) => {
+    await expect(page.locator('[data-testid="team-panel-t01"]')).toBeVisible({ timeout: 10000 })
+
+    await page.locator('[data-testid="team-tab-t01"]').click()
+
+    await expect(page.locator('[data-testid="team-panel-t01"]')).toBeVisible({ timeout: 10000 })
+
+    await expect(page.locator('[data-testid="team-tab-all"]')).toHaveAttribute('aria-selected', 'false')
+    await expect(page.locator('[data-testid="team-tab-t01"]')).toHaveAttribute('aria-selected', 'true')
+
+    await expect(page.locator('text=Viewing')).toBeVisible()
+  })
+
+  test('clicking All Teams tab returns to grid view', async ({ page }) => {
+    await page.locator('[data-testid="team-tab-t01"]').click()
+    await expect(page.locator('[data-testid="team-tab-t01"]')).toHaveAttribute('aria-selected', 'true')
+
+    await page.locator('[data-testid="team-tab-all"]').click()
+    await expect(page.locator('[data-testid="team-tab-all"]')).toHaveAttribute('aria-selected', 'true')
+
+    await expect(page.locator('[data-testid="search-input"]')).toBeVisible()
+
+    await expect(page.locator('text=3 teams')).toBeVisible()
+  })
+
+  test('search bar is hidden in focused view and visible in grid view', async ({ page }) => {
+    await expect(page.locator('[data-testid="search-input"]')).toBeVisible()
+
+    await page.locator('[data-testid="team-tab-t01"]').click()
+
+    await expect(page.locator('[data-testid="search-input"]')).not.toBeVisible()
+
+    await page.locator('[data-testid="team-tab-all"]').click()
+
+    await expect(page.locator('[data-testid="search-input"]')).toBeVisible()
+  })
+
+  test('team selector tabs have correct ARIA tablist attributes', async ({ page }) => {
+    const tablist = page.locator('[role="tablist"]')
+    await expect(tablist).toBeVisible()
+    await expect(tablist).toHaveAttribute('aria-label', 'Select team to monitor')
+
+    const tabs = page.locator('[role="tab"]')
+    const count = await tabs.count()
+    expect(count).toBe(4) // All + 3 teams
+
+    await expect(page.locator('[role="tabpanel"]')).toBeVisible()
+  })
+
+  test('focused view shows team panel at full width without grid', async ({ page }) => {
+    await page.locator('[data-testid="team-tab-t01"]').click()
+
+    const panel = page.locator('[data-testid="team-panel-t01"]')
+    await expect(panel).toBeVisible({ timeout: 10000 })
+
+    const container = page.locator('.max-w-5xl')
+    await expect(container).toBeVisible()
+
+    const panels = container.locator('[data-testid^="team-panel-"]')
+    await expect(panels).toHaveCount(1)
   })
 })

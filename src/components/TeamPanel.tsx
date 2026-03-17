@@ -17,7 +17,7 @@ export function TeamPanel({ teamId, teamName, onClick }: TeamPanelProps) {
 
   if (loading) {
     return (
-      <div className="bg-neutral-900/60 border border-neutral-800/60 rounded-xl p-5">
+      <div className="bg-neutral-900/60 border border-neutral-800/60 rounded-xl p-5" data-testid={`team-panel-${teamId}`}>
         <div className="flex items-center gap-3 mb-4">
           <div className="w-2 h-2 rounded-full bg-neutral-600 animate-pulse-dot" />
           <h2 className="text-lg font-semibold text-neutral-200">{teamName}</h2>
@@ -32,7 +32,7 @@ export function TeamPanel({ teamId, teamName, onClick }: TeamPanelProps) {
 
   if (error) {
     return (
-      <div className="bg-neutral-900/60 border border-red-900/40 rounded-xl p-5" role="alert">
+      <div className="bg-neutral-900/60 border border-red-900/40 rounded-xl p-5" data-testid={`team-panel-${teamId}`} role="alert">
         <h2 className="text-lg font-semibold text-neutral-200 mb-2">{teamName}</h2>
         <p className="text-sm text-red-400 bg-red-950/20 rounded-lg px-3 py-2">
           Failed to load: {error}

@@ -124,3 +124,19 @@ body {
 .modal-content-enter {
   animation: modal-content-in 0.25s ease-out both;
 }
+
+/* Team selector transition */
+@keyframes team-focus-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.team-focus-enter {
+  animation: team-focus-enter 0.25s ease-out both;
+}

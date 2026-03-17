@@ -1,0 +1,51 @@
+export const FIREBASE_CONFIG = {
+  projectId: 'autonomous-agent-hack',
+  appId: '1:15535628185:web:f62001607f8baa1fddbd08',
+  storageBucket: 'autonomous-agent-hack.firebasestorage.app',
+  apiKey: 'AIzaSyDa-kX5jc84RnUFDcvBtUnnbX_7Bbh1IsI',
+  authDomain: 'autonomous-agent-hack.firebaseapp.com',
+  messagingSenderId: '15535628185',
+  databaseURL: 'https://autonomous-agent-hack-default-rtdb.firebaseio.com',
+} as const
+
+export const RTDB_PREFIX = '/mission-deck' as const
+
+export type AgentId =
+  | 'project-resume-agent'
+  | 'next-steps-agent'
+  | 'product-manager-agent'
+  | 'plan-builder-agent'
+  | 'plan-validation-agent'
+  | 'blocker-analysis-agent'
+  | 'execution-agent'
+  | 'playwright-test-agent'
+
+export type AgentStatus = 'idle' | 'active' | 'complete'
+
+export interface AgentDef {
+  id: AgentId
+  name: string
+  phase: string
+}
+
+export const AGENTS: AgentDef[] = [
+  { id: 'project-resume-agent', name: 'Project Resume', phase: 'Orientation' },
+  { id: 'next-steps-agent', name: 'Next Steps', phase: 'Direction' },
+  { id: 'product-manager-agent', name: 'Product Manager', phase: 'Product Scoping' },
+  { id: 'plan-builder-agent', name: 'Plan Builder', phase: 'Planning' },
+  { id: 'plan-validation-agent', name: 'Plan Validation', phase: 'Validation' },
+  { id: 'blocker-analysis-agent', name: 'Blocker Analysis', phase: 'Diagnostics' },
+  { id: 'execution-agent', name: 'Execution', phase: 'Implementation' },
+  { id: 'playwright-test-agent', name: 'Playwright Test', phase: 'Verification' },
+] as const
+
+export interface TeamDef {
+  id: string
+  name: string
+}
+
+export const TEAMS: TeamDef[] = [
+  { id: 't01', name: 'Team 01' },
+  { id: 't02', name: 'Team 02' },
+  { id: 't03', name: 'Team 03' },
+] as const

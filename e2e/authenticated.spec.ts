@@ -190,6 +190,34 @@ test.describe('Mission Deck - Authenticated Dashboard', () => {
     await expect(modal).not.toBeVisible({ timeout: 3000 })
   })
 
+  test('agent prompts are pre-filled and editable with CRUD persistence', async ({ page }) => {
+    const panel = page.locator('[data-testid="team-panel-t01"]')
+    await expect(panel).toBeVisible({ timeout: 10000 })
+
+    // Expand the first agent (project-resume-agent)
+    const agentButton = panel.locator('[aria-controls="prompt-project-resume-agent"]')
+    await expect(agentButton).toBeVisible()
+    await agentButton.click()
+
+    const textarea = panel.locator('#textarea-project-resume-agent')
+    await expect(textarea).toBeVisible({ timeout: 3000 })
+
+    // Verify prompt is pre-filled (not empty, not placeholder)
+    const originalValue = await textarea.inputValue()
+    expect(originalValue.length).toBeGreaterThan(100)
+    expect(originalValue).toContain('UserPrompt')
+
+    // Edit: append a period
+    await textarea.fill(originalValue + '.')
+    const editedValue = await textarea.inputValue()
+    expect(editedValue).toBe(originalValue + '.')
+
+    // Revert: remove the period
+    await textarea.fill(originalValue)
+    const revertedValue = await textarea.inputValue()
+    expect(revertedValue).toBe(originalValue)
+  })
+
   test('search bar responds to "/" keyboard shortcut', async ({ page }) => {
     const searchInput = page.locator('[data-testid="search-input"]')
     await expect(searchInput).toBeVisible()

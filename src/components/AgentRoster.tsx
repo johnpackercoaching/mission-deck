@@ -1,8 +1,30 @@
 import { useState, useCallback, useEffect } from 'react'
 import { AGENTS } from '../config'
+import type { AgentId } from '../config'
 import type { AgentData } from '../schemas'
 import { writeData } from '../services/data'
 import { useRelativeTime } from '../utils/relative-time'
+import {
+  PROJECT_RESUME_AGENT_PROMPT,
+  NEXT_STEPS_AGENT_PROMPT,
+  PRODUCT_MANAGER_AGENT_PROMPT,
+  PLAN_BUILDER_AGENT_PROMPT,
+  PLAN_VALIDATION_AGENT_PROMPT,
+  BLOCKER_ANALYSIS_AGENT_PROMPT,
+  EXECUTION_AGENT_PROMPT,
+  PLAYWRIGHT_TEST_AGENT_PROMPT,
+} from '../data/agent-prompts'
+
+const DEFAULT_PROMPTS: Record<AgentId, string> = {
+  'project-resume-agent': PROJECT_RESUME_AGENT_PROMPT,
+  'next-steps-agent': NEXT_STEPS_AGENT_PROMPT,
+  'product-manager-agent': PRODUCT_MANAGER_AGENT_PROMPT,
+  'plan-builder-agent': PLAN_BUILDER_AGENT_PROMPT,
+  'plan-validation-agent': PLAN_VALIDATION_AGENT_PROMPT,
+  'blocker-analysis-agent': BLOCKER_ANALYSIS_AGENT_PROMPT,
+  'execution-agent': EXECUTION_AGENT_PROMPT,
+  'playwright-test-agent': PLAYWRIGHT_TEST_AGENT_PROMPT,
+}
 
 interface AgentRosterProps {
   teamId: string
@@ -49,7 +71,7 @@ export function AgentRoster({ teamId, agents }: AgentRosterProps) {
               name={agentDef.name}
               phase={agentDef.phase}
               status={agentData?.status ?? 'idle'}
-              systemPrompt={agentData?.systemPrompt ?? ''}
+              systemPrompt={agentData?.systemPrompt || DEFAULT_PROMPTS[agentDef.id]}
               lastActivity={agentData?.lastActivity}
             />
           )

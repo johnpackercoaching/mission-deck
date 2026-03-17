@@ -1,10 +1,41 @@
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from './auth/AuthContext'
 import { TEAMS } from './config'
 import { TeamPanel } from './components/TeamPanel'
 import { LoginPage } from './components/LoginPage'
+import { seedDatabase, checkDataExists } from './data/seed'
 
 export default function App() {
   const { user, loading, signOut } = useAuth()
+  const [seeding, setSeeding] = useState(false)
+  const [hasData, setHasData] = useState<boolean | null>(null)
+
+  const checkData = useCallback(async () => {
+    try {
+      const exists = await checkDataExists()
+      setHasData(exists)
+    } catch {
+      setHasData(null)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (user) {
+      void checkData()
+    }
+  }, [user, checkData])
+
+  const handleSeed = async () => {
+    setSeeding(true)
+    try {
+      await seedDatabase()
+      setHasData(true)
+    } catch (err) {
+      console.error('[seed] Failed to seed database:', err)
+    } finally {
+      setSeeding(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -36,7 +67,24 @@ export default function App() {
               {TEAMS.length} teams
             </span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => void handleSeed()}
+              disabled={seeding}
+              className="focus-ring text-xs font-medium px-3 py-1.5 rounded-md transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed bg-accent-500/10 text-accent-400 border border-accent-500/20 hover:bg-accent-500/20 hover:border-accent-500/30"
+              aria-label={hasData ? 'Reset demo data' : 'Seed demo data'}
+            >
+              {seeding ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent-400 animate-pulse-dot" aria-hidden="true" />
+                  Seeding...
+                </span>
+              ) : hasData ? (
+                'Reset Demo Data'
+              ) : (
+                'Seed Demo Data'
+              )}
+            </button>
             <span className="text-sm text-neutral-500 hidden sm:inline truncate max-w-48">
               {user.email}
             </span>

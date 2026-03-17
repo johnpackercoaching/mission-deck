@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ref, onValue, set, off } from 'firebase/database'
+import { ref, onValue, set, off, get } from 'firebase/database'
 import { rtdb } from '../firebase'
 import { RTDB_PREFIX } from '../config'
 import type { ZodType } from 'zod'
@@ -89,4 +89,11 @@ export async function writeData(path: string, value: unknown): Promise<void> {
   const fullPath = getFullPath(path)
   const dbRef = ref(rtdb, fullPath)
   await set(dbRef, value)
+}
+
+export async function readData(path: string): Promise<unknown> {
+  const fullPath = getFullPath(path)
+  const dbRef = ref(rtdb, fullPath)
+  const snapshot = await get(dbRef)
+  return snapshot.val()
 }

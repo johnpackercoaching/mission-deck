@@ -2,6 +2,16 @@ import { initializeApp, cert, type ServiceAccount } from 'firebase-admin/app'
 import { getDatabase } from 'firebase-admin/database'
 import { readFileSync, existsSync } from 'fs'
 import { resolve } from 'path'
+import {
+  PROJECT_RESUME_AGENT_PROMPT,
+  NEXT_STEPS_AGENT_PROMPT,
+  PRODUCT_MANAGER_AGENT_PROMPT,
+  PLAN_BUILDER_AGENT_PROMPT,
+  PLAN_VALIDATION_AGENT_PROMPT,
+  BLOCKER_ANALYSIS_AGENT_PROMPT,
+  EXECUTION_AGENT_PROMPT,
+  PLAYWRIGHT_TEST_AGENT_PROMPT,
+} from '../src/data/agent-prompts'
 
 // Look for service account key in standard locations
 const SA_PATHS = [
@@ -46,7 +56,7 @@ interface SeedArtifact {
 
 interface SeedAgent {
   name: string
-  status: 'idle' | 'active' | 'complete'
+  status: 'idle' | 'active' | 'complete' | 'error'
   systemPrompt: string
   lastActivity: number
 }
@@ -96,14 +106,14 @@ const teams: Record<string, SeedTeam> = {
       a04: { name: 'StickyNote.tsx', path: '/src/components/StickyNote.tsx', type: 'typescript', createdAt: now - 1 * min },
     },
     agents: {
-      'project-resume-agent': { name: 'Project Resume', status: 'complete', systemPrompt: 'Analyze project state and recommend next steps based on memory files.', lastActivity: now - 5 * min },
-      'next-steps-agent': { name: 'Next Steps', status: 'complete', systemPrompt: 'Evaluate current progress and suggest the single highest-impact next action.', lastActivity: now - 4 * min },
-      'product-manager-agent': { name: 'Product Manager', status: 'complete', systemPrompt: 'Define product scope with JTBD, success metrics, and guardrails.', lastActivity: now - 4 * min },
-      'plan-builder-agent': { name: 'Plan Builder', status: 'complete', systemPrompt: 'Create granular implementation plans with verification criteria per step.', lastActivity: now - 3 * min },
-      'plan-validation-agent': { name: 'Plan Validation', status: 'complete', systemPrompt: 'Validate plans for completeness, check for duplicates and uncertainties.', lastActivity: now - 3 * min },
-      'blocker-analysis-agent': { name: 'Blocker Analysis', status: 'idle', systemPrompt: 'Identify blockers with root cause analysis and resolution paths.', lastActivity: now - 3 * min },
-      'execution-agent': { name: 'Execution', status: 'active', systemPrompt: 'Execute validated plans with strict adherence. Capture all console output.', lastActivity: now - 1 * min },
-      'playwright-test-agent': { name: 'Playwright Test', status: 'idle', systemPrompt: 'Test in headed browser mode. Iterate until tests pass and console is clean.', lastActivity: now - 5 * min },
+      'project-resume-agent': { name: 'Project Resume', status: 'complete', systemPrompt: PROJECT_RESUME_AGENT_PROMPT, lastActivity: now - 5 * min },
+      'next-steps-agent': { name: 'Next Steps', status: 'complete', systemPrompt: NEXT_STEPS_AGENT_PROMPT, lastActivity: now - 4 * min },
+      'product-manager-agent': { name: 'Product Manager', status: 'complete', systemPrompt: PRODUCT_MANAGER_AGENT_PROMPT, lastActivity: now - 4 * min },
+      'plan-builder-agent': { name: 'Plan Builder', status: 'complete', systemPrompt: PLAN_BUILDER_AGENT_PROMPT, lastActivity: now - 3 * min },
+      'plan-validation-agent': { name: 'Plan Validation', status: 'complete', systemPrompt: PLAN_VALIDATION_AGENT_PROMPT, lastActivity: now - 3 * min },
+      'blocker-analysis-agent': { name: 'Blocker Analysis', status: 'idle', systemPrompt: BLOCKER_ANALYSIS_AGENT_PROMPT, lastActivity: now - 3 * min },
+      'execution-agent': { name: 'Execution', status: 'active', systemPrompt: EXECUTION_AGENT_PROMPT, lastActivity: now - 1 * min },
+      'playwright-test-agent': { name: 'Playwright Test', status: 'idle', systemPrompt: PLAYWRIGHT_TEST_AGENT_PROMPT, lastActivity: now - 5 * min },
     },
   },
 
@@ -138,14 +148,14 @@ const teams: Record<string, SeedTeam> = {
       a03: { name: 'package.json', path: '/package.json', type: 'json', createdAt: now - 7 * min },
     },
     agents: {
-      'project-resume-agent': { name: 'Project Resume', status: 'complete', systemPrompt: 'Analyze project state and recommend next steps.', lastActivity: now - 8 * min },
-      'next-steps-agent': { name: 'Next Steps', status: 'complete', systemPrompt: 'Suggest the single highest-impact next action.', lastActivity: now - 7 * min },
-      'product-manager-agent': { name: 'Product Manager', status: 'complete', systemPrompt: 'Define scope, JTBD, and success metrics.', lastActivity: now - 7 * min },
-      'plan-builder-agent': { name: 'Plan Builder', status: 'complete', systemPrompt: 'Create step-by-step implementation plans.', lastActivity: now - 6 * min },
-      'plan-validation-agent': { name: 'Plan Validation', status: 'complete', systemPrompt: 'Validate plan completeness and check for duplicates.', lastActivity: now - 6 * min },
-      'blocker-analysis-agent': { name: 'Blocker Analysis', status: 'complete', systemPrompt: 'Identify blockers and root causes.', lastActivity: now - 3 * min },
-      'execution-agent': { name: 'Execution', status: 'active', systemPrompt: 'Execute plans with strict adherence.', lastActivity: now - 2 * min },
-      'playwright-test-agent': { name: 'Playwright Test', status: 'idle', systemPrompt: 'Test in browser and verify console is clean.', lastActivity: now - 8 * min },
+      'project-resume-agent': { name: 'Project Resume', status: 'complete', systemPrompt: PROJECT_RESUME_AGENT_PROMPT, lastActivity: now - 8 * min },
+      'next-steps-agent': { name: 'Next Steps', status: 'complete', systemPrompt: NEXT_STEPS_AGENT_PROMPT, lastActivity: now - 7 * min },
+      'product-manager-agent': { name: 'Product Manager', status: 'complete', systemPrompt: PRODUCT_MANAGER_AGENT_PROMPT, lastActivity: now - 7 * min },
+      'plan-builder-agent': { name: 'Plan Builder', status: 'complete', systemPrompt: PLAN_BUILDER_AGENT_PROMPT, lastActivity: now - 6 * min },
+      'plan-validation-agent': { name: 'Plan Validation', status: 'complete', systemPrompt: PLAN_VALIDATION_AGENT_PROMPT, lastActivity: now - 6 * min },
+      'blocker-analysis-agent': { name: 'Blocker Analysis', status: 'complete', systemPrompt: BLOCKER_ANALYSIS_AGENT_PROMPT, lastActivity: now - 3 * min },
+      'execution-agent': { name: 'Execution', status: 'active', systemPrompt: EXECUTION_AGENT_PROMPT, lastActivity: now - 2 * min },
+      'playwright-test-agent': { name: 'Playwright Test', status: 'idle', systemPrompt: PLAYWRIGHT_TEST_AGENT_PROMPT, lastActivity: now - 8 * min },
     },
   },
 
@@ -181,14 +191,14 @@ const teams: Record<string, SeedTeam> = {
       a05: { name: 'OptimizationPanel.tsx', path: '/src/components/OptimizationPanel.tsx', type: 'typescript', createdAt: now - 2 * min },
     },
     agents: {
-      'project-resume-agent': { name: 'Project Resume', status: 'complete', systemPrompt: 'Analyze project state from memory files.', lastActivity: now - 12 * min },
-      'next-steps-agent': { name: 'Next Steps', status: 'complete', systemPrompt: 'Recommend the single best next action.', lastActivity: now - 11 * min },
-      'product-manager-agent': { name: 'Product Manager', status: 'complete', systemPrompt: 'Create Decision Briefs with JTBD.', lastActivity: now - 11 * min },
-      'plan-builder-agent': { name: 'Plan Builder', status: 'complete', systemPrompt: 'Build granular plans with input/output/verify per step.', lastActivity: now - 10 * min },
-      'plan-validation-agent': { name: 'Plan Validation', status: 'complete', systemPrompt: 'Resolve uncertainties and check dependencies.', lastActivity: now - 10 * min },
-      'blocker-analysis-agent': { name: 'Blocker Analysis', status: 'idle', systemPrompt: 'Root cause analysis for blockers.', lastActivity: now - 12 * min },
-      'execution-agent': { name: 'Execution', status: 'complete', systemPrompt: 'Execute validated plans. Zero deviation.', lastActivity: now - 2 * min },
-      'playwright-test-agent': { name: 'Playwright Test', status: 'complete', systemPrompt: 'Headed browser tests. Clean console required.', lastActivity: now - 1 * min },
+      'project-resume-agent': { name: 'Project Resume', status: 'complete', systemPrompt: PROJECT_RESUME_AGENT_PROMPT, lastActivity: now - 12 * min },
+      'next-steps-agent': { name: 'Next Steps', status: 'complete', systemPrompt: NEXT_STEPS_AGENT_PROMPT, lastActivity: now - 11 * min },
+      'product-manager-agent': { name: 'Product Manager', status: 'complete', systemPrompt: PRODUCT_MANAGER_AGENT_PROMPT, lastActivity: now - 11 * min },
+      'plan-builder-agent': { name: 'Plan Builder', status: 'complete', systemPrompt: PLAN_BUILDER_AGENT_PROMPT, lastActivity: now - 10 * min },
+      'plan-validation-agent': { name: 'Plan Validation', status: 'complete', systemPrompt: PLAN_VALIDATION_AGENT_PROMPT, lastActivity: now - 10 * min },
+      'blocker-analysis-agent': { name: 'Blocker Analysis', status: 'idle', systemPrompt: BLOCKER_ANALYSIS_AGENT_PROMPT, lastActivity: now - 12 * min },
+      'execution-agent': { name: 'Execution', status: 'complete', systemPrompt: EXECUTION_AGENT_PROMPT, lastActivity: now - 2 * min },
+      'playwright-test-agent': { name: 'Playwright Test', status: 'complete', systemPrompt: PLAYWRIGHT_TEST_AGENT_PROMPT, lastActivity: now - 1 * min },
     },
   },
 }

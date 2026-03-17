@@ -8,19 +8,31 @@ interface AgentRosterProps {
   agents: Record<string, AgentData>
 }
 
-const statusIndicator: Record<string, string> = {
-  idle: 'bg-neutral-600',
-  active: 'bg-green-500',
-  complete: 'bg-blue-500',
+const statusStyles: Record<string, { dot: string; label: string; badge: string }> = {
+  idle: {
+    dot: 'bg-neutral-600',
+    label: 'idle',
+    badge: 'text-neutral-500',
+  },
+  active: {
+    dot: 'bg-green-500 animate-pulse-dot',
+    label: 'active',
+    badge: 'text-green-400',
+  },
+  complete: {
+    dot: 'bg-blue-500',
+    label: 'done',
+    badge: 'text-blue-400',
+  },
 }
 
 export function AgentRoster({ teamId, agents }: AgentRosterProps) {
   return (
-    <div className="space-y-2">
+    <section className="space-y-3" aria-label="Agent roster">
       <h3 className="text-xs font-medium text-neutral-400 uppercase tracking-wider">
         JP Rocks Agents
       </h3>
-      <div className="space-y-2">
+      <div className="space-y-1.5" role="list">
         {AGENTS.map((agentDef) => {
           const agentData = agents[agentDef.id]
           return (
@@ -36,7 +48,7 @@ export function AgentRoster({ teamId, agents }: AgentRosterProps) {
           )
         })}
       </div>
-    </div>
+    </section>
   )
 }
 
@@ -57,28 +69,55 @@ function AgentRow({ teamId, agentId, name, phase, status, systemPrompt }: AgentR
     await writeData(`teams/${teamId}/agents/${agentId}/systemPrompt`, localPrompt)
   }, [teamId, agentId, localPrompt])
 
+  const defaultStyle = { dot: 'bg-neutral-600', label: 'idle', badge: 'text-neutral-500' }
+  const style = statusStyles[status] ?? defaultStyle
+
   return (
-    <div className="bg-neutral-900 border border-neutral-800 rounded px-2 py-1.5">
-      <div
-        className="flex items-center gap-2 cursor-pointer"
+    <div
+      className="bg-neutral-900/80 border border-neutral-800/50 rounded-lg overflow-hidden hover:border-neutral-700/50 transition-colors duration-150"
+      role="listitem"
+    >
+      <button
+        className="focus-ring w-full flex items-center gap-2.5 px-3 py-2 text-left rounded-lg"
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        aria-controls={`prompt-${agentId}`}
       >
-        <span className={`w-2 h-2 rounded-full shrink-0 ${statusIndicator[status] ?? statusIndicator.idle}`} />
-        <span className="text-sm text-neutral-200 flex-1">{name}</span>
-        <span className="text-xs text-neutral-500">{phase}</span>
-        <span className="text-xs text-neutral-600">{status}</span>
-      </div>
-      {expanded && (
-        <div className="mt-2">
+        <span
+          className={`w-2 h-2 rounded-full shrink-0 ${style.dot}`}
+          aria-label={`Status: ${style.label}`}
+        />
+        <span className="text-sm text-neutral-200 flex-1 truncate">{name}</span>
+        <span className="text-[10px] text-neutral-600 hidden sm:inline">{phase}</span>
+        <span className={`text-[10px] font-medium ${style.badge}`}>{style.label}</span>
+        <svg
+          className={`w-3 h-3 text-neutral-600 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+        </svg>
+      </button>
+
+      <div
+        id={`prompt-${agentId}`}
+        className={`overflow-hidden transition-all duration-200 ${expanded ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'}`}
+      >
+        <div className="px-3 pb-3 pt-1">
+          <label htmlFor={`textarea-${agentId}`} className="sr-only">
+            System prompt for {name}
+          </label>
           <textarea
-            className="w-full bg-neutral-950 border border-neutral-700 rounded px-2 py-1 text-xs text-neutral-300 resize-y min-h-20 font-mono focus:outline-none focus:border-neutral-500"
+            id={`textarea-${agentId}`}
+            className="focus-ring w-full bg-neutral-950 border border-neutral-800/60 rounded-md px-2.5 py-2 text-xs text-neutral-300 resize-y min-h-20 font-mono focus:border-accent-500/50 transition-colors duration-150 placeholder:text-neutral-700"
             value={localPrompt}
             onChange={(e) => setLocalPrompt(e.target.value)}
             onBlur={() => void handleSave()}
-            placeholder="System prompt..."
+            placeholder="Enter system prompt..."
           />
         </div>
-      )}
+      </div>
     </div>
   )
 }

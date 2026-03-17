@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { AGENTS } from '../config'
 import type { AgentData } from '../schemas'
 import { writeData } from '../services/data'
@@ -73,6 +73,10 @@ function AgentRow({ teamId, agentId, name, phase, status, systemPrompt, lastActi
   const relativeTime = useRelativeTime(lastActivity)
   const [localPrompt, setLocalPrompt] = useState(systemPrompt)
   const [expanded, setExpanded] = useState(false)
+
+  useEffect(() => {
+    setLocalPrompt(systemPrompt)
+  }, [systemPrompt])
 
   const handleSave = useCallback(async () => {
     await writeData(`teams/${teamId}/agents/${agentId}/systemPrompt`, localPrompt)

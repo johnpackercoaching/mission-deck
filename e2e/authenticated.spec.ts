@@ -15,11 +15,6 @@ test.describe('Mission Deck - Authenticated Dashboard', () => {
     await expect(page.locator('button', { hasText: 'Sign out' })).toBeVisible()
   })
 
-  test('header shows seed demo data button', async ({ page }) => {
-    const seedButton = page.locator('button', { hasText: /Seed Demo Data|Reset Demo Data/ })
-    await expect(seedButton).toBeVisible()
-  })
-
   test('all three team panels render', async ({ page }) => {
     await expect(page.locator('[data-testid="team-panel-t01"]')).toBeVisible({ timeout: 10000 })
     await expect(page.locator('[data-testid="team-panel-t02"]')).toBeVisible()
@@ -62,25 +57,6 @@ test.describe('Mission Deck - Authenticated Dashboard', () => {
     const terminalLog = panel.locator('[role="log"]')
     await expect(terminalLog).toBeVisible()
     await expect(terminalLog).toHaveAttribute('aria-live', 'polite')
-  })
-
-  test('error status badge appears for team with error agents after seeding', async ({ page }) => {
-    const seedButton = page.locator('button', { hasText: /Seed Demo Data|Reset Demo Data/ })
-    await expect(seedButton).toBeVisible()
-    await seedButton.click()
-
-    await expect(seedButton).not.toHaveText('Seeding...', { timeout: 15000 })
-
-    const byteForcePanel = page.locator('[data-testid="team-panel-t02"]')
-    await expect(byteForcePanel).toBeVisible({ timeout: 10000 })
-
-    const errorBadge = byteForcePanel.locator('text=1 error')
-    const errorBadgeVisible = await errorBadge.isVisible({ timeout: 8000 }).catch(() => false)
-    if (errorBadgeVisible) {
-      await expect(errorBadge).toBeVisible()
-    } else {
-      await expect(byteForcePanel.locator('h2')).toBeVisible()
-    }
   })
 
   test('no unexpected console errors on authenticated page', async ({ page }) => {

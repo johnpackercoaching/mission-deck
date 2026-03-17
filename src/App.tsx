@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
+import { useState, useMemo, lazy, Suspense } from 'react'
 import { useAuth } from './auth/AuthContext'
 import { TEAMS } from './config'
 import { TeamPanel } from './components/TeamPanel'
@@ -35,42 +35,11 @@ function getTeamStatus(teamData: { agents?: Record<string, { status: string }> }
 export default function App() {
   const { user, loading, signOut } = useAuth()
   const connected = useConnectionStatus()
-  const [seeding, setSeeding] = useState(false)
-  const [hasData, setHasData] = useState<boolean | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [selectedTeam, setSelectedTeam] = useState<{ id: string; name: string } | null>(null)
 
   const allTeamData = useAllTeamData()
-
-  const checkData = useCallback(async () => {
-    try {
-      const { checkDataExists } = await import('./data/seed')
-      const exists = await checkDataExists()
-      setHasData(exists)
-    } catch {
-      setHasData(null)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (user) {
-      void checkData()
-    }
-  }, [user, checkData])
-
-  const handleSeed = async () => {
-    setSeeding(true)
-    try {
-      const { seedDatabase } = await import('./data/seed')
-      await seedDatabase()
-      setHasData(true)
-    } catch (err) {
-      console.error('[seed] Failed to seed database:', err)
-    } finally {
-      setSeeding(false)
-    }
-  }
 
   // Compute team statuses and filter
   const teamsWithStatus = useMemo(() => {
@@ -152,23 +121,6 @@ export default function App() {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => void handleSeed()}
-              disabled={seeding}
-              className="focus-ring text-xs font-medium px-3 py-1.5 rounded-md transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed bg-accent-500/10 text-accent-400 border border-accent-500/20 hover:bg-accent-500/20 hover:border-accent-500/30"
-              aria-label={hasData ? 'Reset demo data' : 'Seed demo data'}
-            >
-              {seeding ? (
-                <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-accent-400 animate-pulse-dot" aria-hidden="true" />
-                  Seeding...
-                </span>
-              ) : hasData ? (
-                'Reset Demo Data'
-              ) : (
-                'Seed Demo Data'
-              )}
-            </button>
             <span className="text-sm text-neutral-500 hidden sm:inline truncate max-w-48">
               {user.email}
             </span>

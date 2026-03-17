@@ -29,7 +29,7 @@ export function Prompts({ teamId, prompts }: PromptsProps) {
         <div className="flex items-center justify-center h-20 bg-neutral-900/40 border border-neutral-800/40 rounded-lg">
           <div className="text-center space-y-0.5">
             <p className="text-sm text-neutral-600">No prompts configured</p>
-            <p className="text-[10px] text-neutral-700">Prompts will appear when team data is seeded</p>
+            <p className="text-[10px] text-neutral-700">Prompts will appear when team data is available</p>
           </div>
         </div>
       ) : (

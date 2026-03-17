@@ -15,7 +15,7 @@ export const ArtifactSchema = z.object({
 
 export const AgentDataSchema = z.object({
   name: z.string(),
-  status: z.enum(['idle', 'active', 'complete']),
+  status: z.enum(['idle', 'active', 'complete', 'error']),
   systemPrompt: z.string(),
   lastActivity: z.number(),
 })

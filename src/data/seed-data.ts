@@ -83,7 +83,7 @@ function buildSeedTeams(): Record<string, TeamData> {
         'product-manager-agent': { name: 'Product Manager', status: 'complete', systemPrompt: 'Define scope, JTBD, and success metrics.', lastActivity: now - 7 * min },
         'plan-builder-agent': { name: 'Plan Builder', status: 'complete', systemPrompt: 'Create step-by-step implementation plans.', lastActivity: now - 6 * min },
         'plan-validation-agent': { name: 'Plan Validation', status: 'complete', systemPrompt: 'Validate plan completeness and check for duplicates.', lastActivity: now - 6 * min },
-        'blocker-analysis-agent': { name: 'Blocker Analysis', status: 'complete', systemPrompt: 'Identify blockers and root causes.', lastActivity: now - 3 * min },
+        'blocker-analysis-agent': { name: 'Blocker Analysis', status: 'error', systemPrompt: 'Identify blockers and root causes.', lastActivity: now - 3 * min },
         'execution-agent': { name: 'Execution', status: 'active', systemPrompt: 'Execute plans with strict adherence.', lastActivity: now - 2 * min },
         'playwright-test-agent': { name: 'Playwright Test', status: 'idle', systemPrompt: 'Test in browser and verify console is clean.', lastActivity: now - 8 * min },
       },

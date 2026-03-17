@@ -20,7 +20,7 @@ export type AgentId =
   | 'execution-agent'
   | 'playwright-test-agent'
 
-export type AgentStatus = 'idle' | 'active' | 'complete'
+export type AgentStatus = 'idle' | 'active' | 'complete' | 'error'
 
 export interface AgentDef {
   id: AgentId

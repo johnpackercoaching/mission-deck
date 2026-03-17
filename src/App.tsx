@@ -4,9 +4,11 @@ import { TEAMS } from './config'
 import { TeamPanel } from './components/TeamPanel'
 import { LoginPage } from './components/LoginPage'
 import { seedDatabase, checkDataExists } from './data/seed'
+import { useConnectionStatus } from './hooks/useConnectionStatus'
 
 export default function App() {
   const { user, loading, signOut } = useAuth()
+  const connected = useConnectionStatus()
   const [seeding, setSeeding] = useState(false)
   const [hasData, setHasData] = useState<boolean | null>(null)
 
@@ -58,7 +60,11 @@ export default function App() {
         <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse-dot" aria-hidden="true" />
+              <div
+                className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500 animate-pulse-dot' : 'bg-yellow-500'}`}
+                title={connected ? 'Connected to Firebase' : 'Disconnected from Firebase'}
+                aria-label={connected ? 'Connected to Firebase' : 'Disconnected from Firebase'}
+              />
               <h1 className="text-xl font-semibold text-neutral-100 tracking-tight">
                 Mission Deck
               </h1>

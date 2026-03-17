@@ -1,31 +1,46 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { TerminalLine } from '../schemas'
+import { formatRelativeTime } from '../utils/relative-time'
 
 interface TerminalProps {
   lines: Record<string, TerminalLine>
 }
 
+const MAX_DISPLAY_LINES = 200
+
 export function Terminal({ lines }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [userScrolled, setUserScrolled] = useState(false)
+  const prevCountRef = useRef(0)
 
-  const sortedLines = Object.values(lines).sort((a, b) => a.timestamp - b.timestamp)
+  const sortedLines = Object.entries(lines)
+    .map(([key, line]) => ({ key, ...line }))
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .slice(-MAX_DISPLAY_LINES)
+
+  const newLineCount = Math.max(0, sortedLines.length - prevCountRef.current)
 
   useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight
-    }
+    prevCountRef.current = sortedLines.length
   }, [sortedLines.length])
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el || userScrolled) return
+    el.scrollTop = el.scrollHeight
+  }, [sortedLines.length, userScrolled])
+
+  const handleScroll = () => {
+    const el = containerRef.current
+    if (!el) return
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60
+    setUserScrolled(!isNearBottom)
+  }
 
   const typeColor: Record<string, string> = {
     stdout: 'text-neutral-300',
     stderr: 'text-red-400',
     system: 'text-blue-400',
-  }
-
-  const typePrefix: Record<string, string> = {
-    stdout: '',
-    stderr: '',
-    system: '',
   }
 
   return (
@@ -40,7 +55,8 @@ export function Terminal({ lines }: TerminalProps) {
         ref={containerRef}
         role="log"
         aria-live="polite"
-        className="h-52 overflow-y-auto bg-neutral-950 border border-neutral-800/60 rounded-lg p-3 font-mono text-xs leading-relaxed"
+        onScroll={handleScroll}
+        className="h-52 overflow-y-auto bg-neutral-950 border border-neutral-800/60 rounded-lg p-3 font-mono text-xs leading-relaxed custom-scrollbar"
       >
         {sortedLines.length === 0 ? (
           <div className="flex items-center justify-center h-full">
@@ -50,16 +66,33 @@ export function Terminal({ lines }: TerminalProps) {
             </div>
           </div>
         ) : (
-          sortedLines.map((line, i) => (
-            <div
-              key={i}
-              className={`${typeColor[line.type] ?? 'text-neutral-300'} py-0.5 px-1 -mx-1 rounded hover:bg-white/[0.02] transition-colors duration-100`}
-            >
-              {typePrefix[line.type]}{line.text}
-            </div>
-          ))
+          sortedLines.map((line, i) => {
+            const isNew = newLineCount > 0 && i >= sortedLines.length - newLineCount
+            return (
+              <div
+                key={line.key}
+                className={`${typeColor[line.type] ?? 'text-neutral-300'} py-0.5 px-1 -mx-1 rounded hover:bg-white/[0.02] transition-colors duration-100 flex items-baseline gap-2 ${isNew ? 'terminal-new-line' : ''}`}
+              >
+                <span className="text-neutral-700 text-[10px] shrink-0 select-none w-12 text-right">
+                  {formatRelativeTime(line.timestamp)}
+                </span>
+                <span className="flex-1 break-all">{line.text}</span>
+              </div>
+            )
+          })
         )}
       </div>
+      {userScrolled && sortedLines.length > 0 && (
+        <button
+          onClick={() => {
+            setUserScrolled(false)
+            containerRef.current?.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'smooth' })
+          }}
+          className="text-[10px] text-blue-400 hover:text-blue-300 transition-colors"
+        >
+          Scroll to bottom
+        </button>
+      )}
     </section>
   )
 }

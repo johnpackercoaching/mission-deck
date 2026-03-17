@@ -48,6 +48,7 @@ export function TeamPanel({ teamId, teamName }: TeamPanelProps) {
 
   const activeAgentCount = Object.values(agents).filter(a => a.status === 'active').length
   const completeAgentCount = Object.values(agents).filter(a => a.status === 'complete').length
+  const errorAgentCount = Object.values(agents).filter(a => a.status === 'error').length
 
   return (
     <div
@@ -74,6 +75,11 @@ export function TeamPanel({ teamId, teamName }: TeamPanelProps) {
             {completeAgentCount > 0 && (
               <span className="bg-blue-950/30 text-blue-400 border border-blue-900/30 rounded-full px-2 py-0.5">
                 {completeAgentCount} done
+              </span>
+            )}
+            {errorAgentCount > 0 && (
+              <span className="bg-red-950/30 text-red-400 border border-red-900/30 rounded-full px-2 py-0.5">
+                {errorAgentCount} error
               </span>
             )}
           </div>

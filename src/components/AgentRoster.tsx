@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { AGENTS } from '../config'
 import type { AgentData } from '../schemas'
 import { writeData } from '../services/data'
+import { useRelativeTime } from '../utils/relative-time'
 
 interface AgentRosterProps {
   teamId: string
@@ -24,6 +25,11 @@ const statusStyles: Record<string, { dot: string; label: string; badge: string }
     label: 'done',
     badge: 'text-blue-400',
   },
+  error: {
+    dot: 'bg-red-500',
+    label: 'error',
+    badge: 'text-red-400',
+  },
 }
 
 export function AgentRoster({ teamId, agents }: AgentRosterProps) {
@@ -44,6 +50,7 @@ export function AgentRoster({ teamId, agents }: AgentRosterProps) {
               phase={agentDef.phase}
               status={agentData?.status ?? 'idle'}
               systemPrompt={agentData?.systemPrompt ?? ''}
+              lastActivity={agentData?.lastActivity}
             />
           )
         })}
@@ -59,9 +66,11 @@ interface AgentRowProps {
   phase: string
   status: string
   systemPrompt: string
+  lastActivity?: number
 }
 
-function AgentRow({ teamId, agentId, name, phase, status, systemPrompt }: AgentRowProps) {
+function AgentRow({ teamId, agentId, name, phase, status, systemPrompt, lastActivity }: AgentRowProps) {
+  const relativeTime = useRelativeTime(lastActivity)
   const [localPrompt, setLocalPrompt] = useState(systemPrompt)
   const [expanded, setExpanded] = useState(false)
 
@@ -84,12 +93,15 @@ function AgentRow({ teamId, agentId, name, phase, status, systemPrompt }: AgentR
         aria-controls={`prompt-${agentId}`}
       >
         <span
-          className={`w-2 h-2 rounded-full shrink-0 ${style.dot}`}
+          className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-200 ${style.dot}`}
           aria-label={`Status: ${style.label}`}
         />
         <span className="text-sm text-neutral-200 flex-1 truncate">{name}</span>
         <span className="text-[10px] text-neutral-600 hidden sm:inline">{phase}</span>
         <span className={`text-[10px] font-medium ${style.badge}`}>{style.label}</span>
+        {relativeTime && (
+          <span className="text-[10px] text-neutral-600 hidden sm:inline">{relativeTime}</span>
+        )}
         <svg
           className={`w-3 h-3 text-neutral-600 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
           viewBox="0 0 20 20"

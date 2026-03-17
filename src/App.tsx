@@ -1,14 +1,14 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import { useAuth } from './auth/AuthContext'
 import { TEAMS } from './config'
 import { TeamPanel } from './components/TeamPanel'
-import { LoginPage } from './components/LoginPage'
 import { SearchBar, type StatusFilter } from './components/SearchBar'
-import { TeamDetailModal } from './components/TeamDetailModal'
-import { seedDatabase, checkDataExists } from './data/seed'
 import { useConnectionStatus } from './hooks/useConnectionStatus'
 import { useData } from './services/data'
 import { TeamDataSchema } from './schemas'
+
+const LoginPage = lazy(() => import('./components/LoginPage').then(m => ({ default: m.LoginPage })))
+const TeamDetailModal = lazy(() => import('./components/TeamDetailModal').then(m => ({ default: m.TeamDetailModal })))
 
 function useAllTeamData() {
   // Subscribe to all teams' data for filtering
@@ -45,6 +45,7 @@ export default function App() {
 
   const checkData = useCallback(async () => {
     try {
+      const { checkDataExists } = await import('./data/seed')
       const exists = await checkDataExists()
       setHasData(exists)
     } catch {
@@ -61,6 +62,7 @@ export default function App() {
   const handleSeed = async () => {
     setSeeding(true)
     try {
+      const { seedDatabase } = await import('./data/seed')
       await seedDatabase()
       setHasData(true)
     } catch (err) {
@@ -116,7 +118,18 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginPage />
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-accent-500 animate-pulse-dot" />
+            <p className="text-neutral-400 text-sm">Loading...</p>
+          </div>
+        </div>
+      }>
+        <LoginPage />
+      </Suspense>
+    )
   }
 
   return (
@@ -223,12 +236,14 @@ export default function App() {
 
       {/* Team Detail Modal */}
       {selectedTeam && (
-        <TeamDetailModal
-          teamId={selectedTeam.id}
-          teamName={selectedTeam.name}
-          isOpen={true}
-          onClose={() => setSelectedTeam(null)}
-        />
+        <Suspense fallback={null}>
+          <TeamDetailModal
+            teamId={selectedTeam.id}
+            teamName={selectedTeam.name}
+            isOpen={true}
+            onClose={() => setSelectedTeam(null)}
+          />
+        </Suspense>
       )}
     </div>
   )

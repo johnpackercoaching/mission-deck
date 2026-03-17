@@ -39,13 +39,4 @@ export const AGENTS: AgentDef[] = [
   { id: 'playwright-test-agent', name: 'Playwright Test', phase: 'Verification' },
 ] as const
 
-export interface TeamDef {
-  id: string
-  name: string
-}
-
-export const TEAMS: TeamDef[] = [
-  { id: 't01', name: 'Team 01' },
-  { id: 't02', name: 'Team 02' },
-  { id: 't03', name: 'Team 03' },
-] as const
+export const MAX_TEAMS = 20

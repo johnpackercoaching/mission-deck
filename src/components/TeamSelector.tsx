@@ -10,6 +10,9 @@ interface TeamSelectorProps {
   teams: TeamTab[]
   focusedTeamId: string | null
   onSelectTeam: (teamId: string | null) => void
+  onCreateTeam: () => void
+  onDeleteTeam: (teamId: string, teamName: string) => void
+  canCreate: boolean
 }
 
 const statusDotColor: Record<string, string> = {
@@ -18,7 +21,7 @@ const statusDotColor: Record<string, string> = {
   idle: 'bg-neutral-600',
 }
 
-export function TeamSelector({ teams, focusedTeamId, onSelectTeam }: TeamSelectorProps) {
+export function TeamSelector({ teams, focusedTeamId, onSelectTeam, onCreateTeam, onDeleteTeam, canCreate }: TeamSelectorProps) {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent, teamId: string | null) => {
       if (e.key === 'Enter' || e.key === ' ') {
@@ -27,6 +30,14 @@ export function TeamSelector({ teams, focusedTeamId, onSelectTeam }: TeamSelecto
       }
     },
     [onSelectTeam]
+  )
+
+  const handleDeleteClick = useCallback(
+    (e: React.MouseEvent, teamId: string, teamName: string) => {
+      e.stopPropagation()
+      onDeleteTeam(teamId, teamName)
+    },
+    [onDeleteTeam]
   )
 
   const isAllSelected = focusedTeamId === null
@@ -83,7 +94,7 @@ export function TeamSelector({ teams, focusedTeamId, onSelectTeam }: TeamSelecto
             aria-controls="team-content"
             onClick={() => onSelectTeam(team.id)}
             onKeyDown={(e) => handleKeyDown(e, team.id)}
-            className={`focus-ring shrink-0 flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-all duration-150 ${
+            className={`group/tab focus-ring shrink-0 flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-all duration-150 ${
               isSelected
                 ? 'bg-accent-500/15 text-accent-400 border border-accent-500/30'
                 : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/40 border border-transparent'
@@ -95,9 +106,40 @@ export function TeamSelector({ teams, focusedTeamId, onSelectTeam }: TeamSelecto
               aria-label={`Status: ${team.status}`}
             />
             <span className="truncate max-w-32">{team.name}</span>
+            {/* Delete button - hover reveal */}
+            <span
+              role="button"
+              tabIndex={-1}
+              onClick={(e) => handleDeleteClick(e, team.id, team.name)}
+              className="opacity-0 group-hover/tab:opacity-100 focus:opacity-100 ml-0.5 -mr-1 p-0.5 rounded text-neutral-600 hover:text-red-400 transition-all duration-150"
+              aria-label={`Delete team ${team.name}`}
+              data-testid={`delete-team-${team.id}`}
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </span>
           </button>
         )
       })}
+
+      {/* Create Team button */}
+      {canCreate && (
+        <>
+          <div className="w-px h-5 bg-neutral-800/60 shrink-0 mx-0.5" aria-hidden="true" />
+          <button
+            onClick={onCreateTeam}
+            className="focus-ring shrink-0 flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg text-neutral-500 hover:text-accent-400 hover:bg-neutral-800/40 border border-transparent hover:border-accent-500/20 transition-all duration-150"
+            aria-label="Create new team"
+            data-testid="create-team-button"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            New
+          </button>
+        </>
+      )}
     </div>
   )
 }

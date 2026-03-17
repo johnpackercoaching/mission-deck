@@ -21,12 +21,50 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+/** Check if E2E mock auth is requested via URL parameter (dev mode only) */
+function isE2EMockAuth(): boolean {
+  if (!import.meta.env.DEV) return false
+  const params = new URLSearchParams(window.location.search)
+  return params.get('e2e') === 'mock'
+}
+
+/** Create a minimal mock user for E2E testing */
+function createMockUser(): User {
+  return {
+    uid: 'e2e-test-uid',
+    email: 'test@missiondeck.dev',
+    displayName: 'E2E Test User',
+    emailVerified: true,
+    isAnonymous: false,
+    metadata: {},
+    providerData: [],
+    providerId: 'firebase',
+    refreshToken: '',
+    tenantId: null,
+    phoneNumber: null,
+    photoURL: null,
+    delete: () => Promise.resolve(),
+    getIdToken: () => Promise.resolve('mock-token'),
+    getIdTokenResult: () =>
+      Promise.resolve({} as Awaited<ReturnType<User['getIdTokenResult']>>),
+    reload: () => Promise.resolve(),
+    toJSON: () => ({}),
+  } as User
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // E2E mock auth bypass: skip Firebase auth entirely
+    if (isE2EMockAuth()) {
+      setUser(createMockUser())
+      setLoading(false)
+      return
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u)
       setLoading(false)

@@ -11,17 +11,11 @@ const LoginPage = lazy(() => import('./components/LoginPage').then(m => ({ defau
 const TeamDetailModal = lazy(() => import('./components/TeamDetailModal').then(m => ({ default: m.TeamDetailModal })))
 
 function useAllTeamData() {
-  // Subscribe to all teams' data for filtering
-  // TEAMS is a static constant, so hook count is stable
   const t01 = useData('teams/t01', TeamDataSchema)
-  const t02 = useData('teams/t02', TeamDataSchema)
-  const t03 = useData('teams/t03', TeamDataSchema)
 
   return useMemo(() => ({
     t01: t01.data,
-    t02: t02.data,
-    t03: t03.data,
-  }), [t01.data, t02.data, t03.data])
+  }), [t01.data])
 }
 
 function getTeamStatus(teamData: { agents?: Record<string, { status: string }> } | null): 'active' | 'error' | 'idle' {

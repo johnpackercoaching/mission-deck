@@ -15,10 +15,8 @@ test.describe('Mission Deck - Authenticated Dashboard', () => {
     await expect(page.locator('button', { hasText: 'Sign out' })).toBeVisible()
   })
 
-  test('all three team panels render', async ({ page }) => {
+  test('team panel renders', async ({ page }) => {
     await expect(page.locator('[data-testid="team-panel-t01"]')).toBeVisible({ timeout: 10000 })
-    await expect(page.locator('[data-testid="team-panel-t02"]')).toBeVisible()
-    await expect(page.locator('[data-testid="team-panel-t03"]')).toBeVisible()
   })
 
   test('team panels display team names from config', async ({ page }) => {
@@ -40,7 +38,7 @@ test.describe('Mission Deck - Authenticated Dashboard', () => {
   })
 
   test('team count indicator shows in header', async ({ page }) => {
-    await expect(page.locator('text=3 teams')).toBeVisible()
+    await expect(page.locator('text=1 teams')).toBeVisible()
   })
 
   test('connection status indicator exists in header', async ({ page }) => {
@@ -100,8 +98,6 @@ test.describe('Mission Deck - Authenticated Dashboard', () => {
     await searchInput.fill('ZZZZNONEXISTENT')
 
     await expect(page.locator('[data-testid="team-panel-t01"]')).not.toBeVisible({ timeout: 3000 })
-    await expect(page.locator('[data-testid="team-panel-t02"]')).not.toBeVisible()
-    await expect(page.locator('[data-testid="team-panel-t03"]')).not.toBeVisible()
 
     await expect(page.locator('text=No teams match your search')).toBeVisible()
     await expect(page.locator('[data-testid="clear-filters"]')).toBeVisible()

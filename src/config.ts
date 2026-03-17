@@ -46,6 +46,4 @@ export interface TeamDef {
 
 export const TEAMS: TeamDef[] = [
   { id: 't01', name: 'Team 01' },
-  { id: 't02', name: 'Team 02' },
-  { id: 't03', name: 'Team 03' },
 ] as const

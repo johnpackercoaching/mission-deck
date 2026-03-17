@@ -12,11 +12,16 @@ test.describe('Mission Deck', () => {
   })
 
   test('login page has Google sign-in button', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/', { waitUntil: 'networkidle' })
+    // Wait for Firebase auth to resolve loading state
+    await page.waitForFunction(() => {
+      const body = document.body.textContent || ''
+      return !body.includes('Loading...')
+    }, { timeout: 10000 })
     const signInButton = page.locator('button', { hasText: 'Sign in with Google' })
-    const hasSignIn = await signInButton.isVisible().catch(() => false)
-    const hasTeamPanel = await page.locator('[data-testid^="team-panel-"]').first().isVisible().catch(() => false)
-    expect(hasSignIn || hasTeamPanel).toBe(true)
+    const teamPanel = page.locator('[data-testid^="team-panel-"]').first()
+    // Either the login button or a team panel should be visible after auth resolves
+    await expect(signInButton.or(teamPanel)).toBeVisible({ timeout: 5000 })
   })
 
   test('no console errors on page load', async ({ page }) => {

@@ -114,7 +114,7 @@ function AgentRow({ teamId, agentId, name, phase, status, systemPrompt, lastActi
 
       <div
         id={`prompt-${agentId}`}
-        className={`overflow-hidden transition-all duration-200 ${expanded ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'}`}
+        className={`overflow-hidden transition-all duration-200 ${expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
       >
         <div className="px-3 pb-3 pt-1">
           <label htmlFor={`textarea-${agentId}`} className="sr-only">

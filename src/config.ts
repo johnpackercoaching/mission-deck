@@ -1,11 +1,11 @@
 export const FIREBASE_CONFIG = {
-  projectId: 'autonomous-agent-hack',
-  appId: '1:15535628185:web:f62001607f8baa1fddbd08',
-  storageBucket: 'autonomous-agent-hack.firebasestorage.app',
-  apiKey: 'AIzaSyDa-kX5jc84RnUFDcvBtUnnbX_7Bbh1IsI',
-  authDomain: 'autonomous-agent-hack.firebaseapp.com',
-  messagingSenderId: '15535628185',
-  databaseURL: 'https://autonomous-agent-hack-default-rtdb.firebaseio.com',
+  projectId: 'mission-deck-app',
+  appId: '1:99658899110:web:ea6c1dd38992669be2de67',
+  storageBucket: 'mission-deck-app.firebasestorage.app',
+  apiKey: 'AIzaSyAp7kqb4AJry_GkAXdZbMm_fjYogD3AMkg',
+  authDomain: 'mission-deck-app.firebaseapp.com',
+  messagingSenderId: '99658899110',
+  databaseURL: 'https://mission-deck-app-default-rtdb.firebaseio.com',
 } as const
 
 export const RTDB_PREFIX = '/mission-deck' as const

@@ -3,7 +3,7 @@ import { getDatabase, type Database } from 'firebase-admin/database'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-const DATABASE_URL = 'https://autonomous-agent-hack-default-rtdb.firebaseio.com'
+const DATABASE_URL = 'https://mission-deck-app-default-rtdb.firebaseio.com'
 const RTDB_PREFIX = '/mission-deck'
 
 let app: App | null = null

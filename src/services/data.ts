@@ -121,11 +121,21 @@ async function mockRemoveData(fullPath: string): Promise<void> {
   notifyMockListeners(fullPath)
 }
 
+// Expose mock write function for E2E tests to inject data
+if (USE_MOCK && typeof window !== 'undefined') {
+  ;(window as any).__mockWriteData = (path: string, value: unknown) => {
+    const segments = pathSegments(path)
+    setNestedValue(mockStore, segments, value)
+    notifyMockListeners(path)
+  }
+}
+
 // ---------- Firebase Listener Dedup ----------
 const activeListeners = new Map<string, {
   count: number
   unsubscribe: () => void
   callbacks: Set<(data: unknown) => void>
+  lastValue: { val: unknown; received: boolean }
 }>()
 
 function getFullPath(path: string): string {
@@ -175,24 +185,33 @@ export function useData<T>(path: string, schema: ZodType<T>): {
     if (existing) {
       existing.count++
       existing.callbacks.add(callback)
+      // Replay last value so new subscribers get current state immediately
+      if (existing.lastValue.received) {
+        queueMicrotask(() => callback(existing.lastValue.val))
+      }
     } else {
       const dbRef = ref(rtdb, fullPath)
       const callbacks = new Set<(data: unknown) => void>([callback])
       const unsubscribe = () => off(dbRef)
+      const lastValue = { val: undefined as unknown, received: false }
 
       onValue(dbRef, (snapshot) => {
         const val = snapshot.val()
+        lastValue.val = val
+        lastValue.received = true
         for (const cb of callbacks) {
           cb(val)
         }
       }, (err) => {
         console.error(`[data] Firebase error for ${fullPath}:`, err.message)
+        lastValue.val = null
+        lastValue.received = true
         for (const cb of callbacks) {
           cb(null)
         }
       })
 
-      activeListeners.set(fullPath, { count: 1, unsubscribe, callbacks })
+      activeListeners.set(fullPath, { count: 1, unsubscribe, callbacks, lastValue })
     }
 
     return () => {

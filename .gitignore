@@ -5,6 +5,7 @@ dist
 *.local
 test-results/
 playwright-report/
+.auth/
 .firebase/
 service-account.json
 serviceAccountKey.json

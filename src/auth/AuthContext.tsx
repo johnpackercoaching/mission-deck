@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   signInWithPopup,
+  signInWithEmailAndPassword,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged,
@@ -16,6 +17,7 @@ interface AuthContextType {
   loading: boolean
   error: string | null
   signInWithGoogle: () => Promise<void>
+  signInWithEmail: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -32,7 +34,7 @@ function isE2EMockAuth(): boolean {
 function createMockUser(): User {
   return {
     uid: 'e2e-test-uid',
-    email: 'test@missiondeck.dev',
+    email: 'testuser@missiondeck.dev',
     displayName: 'E2E Test User',
     emailVerified: true,
     isAnonymous: false,
@@ -82,6 +84,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const signInWithEmail = async (email: string, password: string) => {
+    setError(null)
+    try {
+      await signInWithEmailAndPassword(auth, email, password)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Sign in failed'
+      setError(message)
+    }
+  }
+
   const signOut = async () => {
     try {
       await firebaseSignOut(auth)
@@ -92,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, loading, error, signInWithGoogle, signInWithEmail, signOut }}>
       {children}
     </AuthContext.Provider>
   )

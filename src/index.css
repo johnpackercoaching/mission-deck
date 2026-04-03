@@ -140,3 +140,19 @@ body {
 .team-focus-enter {
   animation: team-focus-enter 0.25s ease-out both;
 }
+
+/* Timeline animations */
+@keyframes timeline-event-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.timeline-event-in {
+  animation: timeline-event-in 0.2s ease-out both;
+}

@@ -3,6 +3,7 @@ import { TeamDataSchema } from '../schemas'
 import { ProjectPreview } from './ProjectPreview'
 import { Prompts } from './Prompts'
 import { Terminal } from './Terminal'
+import { TimelineView } from './TimelineView'
 import { Artifacts } from './Artifacts'
 import { AgentRoster } from './AgentRoster'
 
@@ -113,6 +114,7 @@ export function TeamPanel({ teamId, teamName, onClick }: TeamPanelProps) {
             <ProjectPreview previewUrl={project.previewUrl ?? ''} />
             <Prompts teamId={teamId} prompts={project.prompts ?? {}} />
             <Terminal lines={terminal.lines ?? {}} />
+            <TimelineView teamId={teamId} />
             <Artifacts artifacts={artifacts} />
           </div>
           <div>

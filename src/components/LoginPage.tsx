@@ -1,7 +1,19 @@
+import { useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 
 export function LoginPage() {
-  const { signInWithGoogle, error } = useAuth()
+  const { signInWithGoogle, signInWithEmail, error } = useAuth()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email || !password) return
+    setIsSubmitting(true)
+    await signInWithEmail(email, password)
+    setIsSubmitting(false)
+  }
 
   return (
     <div className="min-h-screen bg-neutral-950 flex items-center justify-center relative overflow-hidden">
@@ -53,6 +65,42 @@ export function LoginPage() {
             <span className="absolute inset-0 rounded-lg bg-white/0 group-hover:bg-white/[0.02] transition-colors duration-200" aria-hidden="true" />
           </button>
         </div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 max-w-xs mx-auto">
+          <div className="flex-1 h-px bg-neutral-800" />
+          <span className="text-neutral-600 text-xs uppercase tracking-wider">or</span>
+          <div className="flex-1 h-px bg-neutral-800" />
+        </div>
+
+        {/* Email/Password form */}
+        <form onSubmit={(e) => void handleEmailSignIn(e)} className="space-y-3 max-w-xs mx-auto">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-4 py-2.5 bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 text-sm placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+            aria-label="Email address"
+            autoComplete="email"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-4 py-2.5 bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 text-sm placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+            aria-label="Password"
+            autoComplete="current-password"
+          />
+          <button
+            type="submit"
+            disabled={isSubmitting || !email || !password}
+            className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-neutral-800 disabled:text-neutral-500 text-white rounded-lg text-sm font-medium transition-colors duration-200"
+          >
+            {isSubmitting ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
 
         {error && (
           <div className="animate-fade-in" role="alert">

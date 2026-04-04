@@ -6,6 +6,8 @@ import { SearchBar } from './components/SearchBar'
 import type { StatusFilter } from './components/SearchBar'
 import { CreateTeamDialog } from './components/CreateTeamDialog'
 import { DeleteTeamDialog } from './components/DeleteTeamDialog'
+import { ToastContainer } from './components/ToastContainer'
+import type { Toast } from './components/ToastContainer'
 import { useConnectionStatus } from './hooks/useConnectionStatus'
 import { useUserTeam } from './hooks/useUserTeam'
 import { useTeamList } from './hooks/useTeamList'
@@ -30,13 +32,18 @@ function getInitialFocusedTeam(): string | null {
 function TeamStatusTracker({
   teamId,
   onStatus,
+  onAgentError,
 }: {
   teamId: string
   onStatus: (id: string, status: 'active' | 'error' | 'idle') => void
+  onAgentError?: (teamId: string, teamName: string, agentId: string, agentName: string) => void
 }) {
   const { data } = useData(`teams/${teamId}`, TeamDataSchema)
   const onStatusRef = useRef(onStatus)
   onStatusRef.current = onStatus
+  const onAgentErrorRef = useRef(onAgentError)
+  onAgentErrorRef.current = onAgentError
+  const prevAgentStatusesRef = useRef<Record<string, string>>({})
 
   useEffect(() => {
     if (!data) {
@@ -47,6 +54,23 @@ function TeamStatusTracker({
     const hasError = Object.values(agents).some(a => a.status === 'error')
     const hasActive = Object.values(agents).some(a => a.status === 'active')
     onStatusRef.current(teamId, hasError ? 'error' : hasActive ? 'active' : 'idle')
+
+    // Detect agent error transitions
+    if (onAgentErrorRef.current) {
+      const prevStatuses = prevAgentStatusesRef.current
+      for (const [agentId, agentData] of Object.entries(agents)) {
+        if (agentData.status === 'error' && prevStatuses[agentId] !== 'error') {
+          onAgentErrorRef.current(teamId, data.name, agentId, agentData.name)
+        }
+      }
+    }
+
+    // Update previous statuses
+    const newStatuses: Record<string, string> = {}
+    for (const [agentId, agentData] of Object.entries(agents)) {
+      newStatuses[agentId] = agentData.status
+    }
+    prevAgentStatusesRef.current = newStatuses
   }, [data, teamId])
 
   return null
@@ -108,6 +132,7 @@ function AuthenticatedApp({
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   const [modalTarget, setModalTarget] = useState<{ id: string; name: string } | null>(null)
+  const [toasts, setToasts] = useState<Toast[]>([])
 
   // Persist focused team to localStorage
   useEffect(() => {
@@ -169,6 +194,15 @@ function AuthenticatedApp({
 
   const handleOpenModal = useCallback((teamId: string, teamName: string) => {
     setModalTarget({ id: teamId, name: teamName })
+  }, [])
+
+  const handleAgentError = useCallback((teamId: string, teamName: string, agentId: string, agentName: string) => {
+    const id = `${teamId}-${agentId}-${Date.now()}`
+    setToasts(prev => [...prev, { id, teamName, agentName, timestamp: Date.now() }])
+  }, [])
+
+  const handleDismissToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
 
   // Filtering
@@ -338,7 +372,7 @@ function AuthenticatedApp({
 
       {/* Invisible status trackers - one per team */}
       {teams.map(team => (
-        <TeamStatusTracker key={team.id} teamId={team.id} onStatus={handleStatusUpdate} />
+        <TeamStatusTracker key={team.id} teamId={team.id} onStatus={handleStatusUpdate} onAgentError={handleAgentError} />
       ))}
 
       {/* Create Team Dialog */}
@@ -369,6 +403,9 @@ function AuthenticatedApp({
           />
         </Suspense>
       )}
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onDismiss={handleDismissToast} />
     </div>
   )
 }

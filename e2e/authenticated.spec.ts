@@ -155,6 +155,90 @@ test.describe('Mission Deck - Multi-Team Dashboard', () => {
     await expect(timeline).toHaveAttribute('aria-label', 'Agent timeline')
   })
 
+  test('toast appears when agent enters error state', async ({ page }) => {
+    await page.evaluate(() => {
+      const teamPanels = document.querySelectorAll('[data-testid^="team-panel-"]')
+      const teamId = teamPanels[0]?.getAttribute('data-testid')?.replace('team-panel-', '')
+      if (teamId && (window as any).__mockWriteData) {
+        ;(window as any).__mockWriteData(`/mission-deck/teams/${teamId}/agents/execution-agent`, {
+          name: 'Execution',
+          status: 'error',
+          systemPrompt: 'test',
+          lastActivity: Date.now(),
+        })
+      }
+    })
+    const toast = page.locator('[data-testid="toast-container"]')
+    await expect(toast).toBeVisible({ timeout: 5000 })
+    const toastItem = page.locator('[role="alert"]').last()
+    await expect(toastItem).toContainText('Execution')
+  })
+
+  test('toast can be manually dismissed', async ({ page }) => {
+    await page.evaluate(() => {
+      const teamPanels = document.querySelectorAll('[data-testid^="team-panel-"]')
+      const teamId = teamPanels[0]?.getAttribute('data-testid')?.replace('team-panel-', '')
+      if (teamId && (window as any).__mockWriteData) {
+        ;(window as any).__mockWriteData(`/mission-deck/teams/${teamId}/agents/execution-agent`, {
+          name: 'Execution',
+          status: 'error',
+          systemPrompt: 'test',
+          lastActivity: Date.now(),
+        })
+      }
+    })
+    const toast = page.locator('[data-testid="toast-container"]')
+    await expect(toast).toBeVisible({ timeout: 5000 })
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-testid^="toast-dismiss-"]') as HTMLElement
+      btn?.click()
+    })
+    await expect(toast).not.toBeVisible({ timeout: 3000 })
+  })
+
+  test('toast auto-dismisses after timeout', async ({ page }) => {
+    await page.evaluate(() => {
+      const teamPanels = document.querySelectorAll('[data-testid^="team-panel-"]')
+      const teamId = teamPanels[0]?.getAttribute('data-testid')?.replace('team-panel-', '')
+      if (teamId && (window as any).__mockWriteData) {
+        ;(window as any).__mockWriteData(`/mission-deck/teams/${teamId}/agents/plan-builder-agent`, {
+          name: 'Plan Builder',
+          status: 'error',
+          systemPrompt: 'test',
+          lastActivity: Date.now(),
+        })
+      }
+    })
+    const toast = page.locator('[data-testid="toast-container"]')
+    await expect(toast).toBeVisible({ timeout: 5000 })
+    await expect(toast).not.toBeVisible({ timeout: 8000 })
+  })
+
+  test('multiple toasts stack when multiple agents error', async ({ page }) => {
+    await page.evaluate(() => {
+      const teamPanels = document.querySelectorAll('[data-testid^="team-panel-"]')
+      const teamId = teamPanels[0]?.getAttribute('data-testid')?.replace('team-panel-', '')
+      if (teamId && (window as any).__mockWriteData) {
+        ;(window as any).__mockWriteData(`/mission-deck/teams/${teamId}/agents/execution-agent`, {
+          name: 'Execution',
+          status: 'error',
+          systemPrompt: 'test',
+          lastActivity: Date.now(),
+        })
+        ;(window as any).__mockWriteData(`/mission-deck/teams/${teamId}/agents/playwright-test-agent`, {
+          name: 'Playwright Test',
+          status: 'error',
+          systemPrompt: 'test',
+          lastActivity: Date.now(),
+        })
+      }
+    })
+    const container = page.locator('[data-testid="toast-container"]')
+    await expect(container).toBeVisible({ timeout: 5000 })
+    const toastItems = container.locator('[role="alert"]')
+    await expect(toastItems).toHaveCount(2, { timeout: 5000 })
+  })
+
   test('no unexpected console errors on authenticated page', async ({ page }) => {
     const errors: string[] = []
     page.on('console', (msg) => {

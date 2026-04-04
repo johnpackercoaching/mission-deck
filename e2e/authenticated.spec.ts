@@ -248,6 +248,32 @@ test.describe('Mission Deck - Multi-Team Dashboard', () => {
     await expect(waterfall).toHaveAttribute('aria-valuemax', '8')
   })
 
+  test('dashboard stats visible in grid view with 4 stat cards', async ({ page }) => {
+    const stats = page.locator('[data-testid="dashboard-stats"]')
+    await expect(stats).toBeVisible()
+    await expect(stats).toHaveAttribute('role', 'region')
+    await expect(page.locator('[data-testid="stat-teams"]')).toBeVisible()
+    await expect(page.locator('[data-testid="stat-active"]')).toBeVisible()
+    await expect(page.locator('[data-testid="stat-errors"]')).toBeVisible()
+    await expect(page.locator('[data-testid="stat-progress"]')).toBeVisible()
+  })
+
+  test('dashboard stats hidden in focused view', async ({ page }) => {
+    await createTeam(page, 'Stats Test Team')
+    // Click the team tab to enter focused view
+    await page.evaluate(() => {
+      const tabs = document.querySelectorAll('[role="tab"]')
+      for (const t of tabs) {
+        if (t.textContent?.includes('Stats Test Team')) {
+          ;(t as HTMLElement).click()
+          break
+        }
+      }
+    })
+    await expect(page.locator('[data-testid^="team-panel-"]')).toHaveCount(1)
+    await expect(page.locator('[data-testid="dashboard-stats"]')).not.toBeVisible()
+  })
+
   test('no unexpected console errors on authenticated page', async ({ page }) => {
     const errors: string[] = []
     page.on('console', (msg) => {

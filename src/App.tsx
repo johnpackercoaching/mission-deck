@@ -4,6 +4,7 @@ import { TeamPanel } from './components/TeamPanel'
 import { TeamSelector } from './components/TeamSelector'
 import { SearchBar } from './components/SearchBar'
 import type { StatusFilter } from './components/SearchBar'
+import { DashboardStats } from './components/DashboardStats'
 import { CreateTeamDialog } from './components/CreateTeamDialog'
 import { DeleteTeamDialog } from './components/DeleteTeamDialog'
 import { ToastContainer } from './components/ToastContainer'
@@ -12,7 +13,7 @@ import { useConnectionStatus } from './hooks/useConnectionStatus'
 import { useUserTeam } from './hooks/useUserTeam'
 import { useTeamList } from './hooks/useTeamList'
 import { useData, writeData, removeData } from './services/data'
-import { MAX_TEAMS } from './config'
+import { MAX_TEAMS, AGENTS } from './config'
 import { TeamDataSchema } from './schemas'
 
 const LoginPage = lazy(() => import('./components/LoginPage').then(m => ({ default: m.LoginPage })))
@@ -28,32 +29,51 @@ function getInitialFocusedTeam(): string | null {
   }
 }
 
+interface AgentCounts {
+  active: number
+  error: number
+  complete: number
+}
+
 /** Invisible component that subscribes to a single team's data and reports its status */
 function TeamStatusTracker({
   teamId,
   onStatus,
   onAgentError,
+  onAgentCounts,
 }: {
   teamId: string
   onStatus: (id: string, status: 'active' | 'error' | 'idle') => void
   onAgentError?: (teamId: string, teamName: string, agentId: string, agentName: string) => void
+  onAgentCounts?: (id: string, counts: AgentCounts) => void
 }) {
   const { data } = useData(`teams/${teamId}`, TeamDataSchema)
   const onStatusRef = useRef(onStatus)
   onStatusRef.current = onStatus
   const onAgentErrorRef = useRef(onAgentError)
   onAgentErrorRef.current = onAgentError
+  const onAgentCountsRef = useRef(onAgentCounts)
+  onAgentCountsRef.current = onAgentCounts
   const prevAgentStatusesRef = useRef<Record<string, string>>({})
 
   useEffect(() => {
     if (!data) {
       onStatusRef.current(teamId, 'idle')
+      onAgentCountsRef.current?.(teamId, { active: 0, error: 0, complete: 0 })
       return
     }
     const agents = data.agents ?? {}
-    const hasError = Object.values(agents).some(a => a.status === 'error')
-    const hasActive = Object.values(agents).some(a => a.status === 'active')
+    const agentValues = Object.values(agents)
+    const hasError = agentValues.some(a => a.status === 'error')
+    const hasActive = agentValues.some(a => a.status === 'active')
     onStatusRef.current(teamId, hasError ? 'error' : hasActive ? 'active' : 'idle')
+
+    // Report agent counts
+    onAgentCountsRef.current?.(teamId, {
+      active: agentValues.filter(a => a.status === 'active').length,
+      error: agentValues.filter(a => a.status === 'error').length,
+      complete: agentValues.filter(a => a.status === 'complete').length,
+    })
 
     // Detect agent error transitions
     if (onAgentErrorRef.current) {
@@ -129,6 +149,7 @@ function AuthenticatedApp({
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [teamStatuses, setTeamStatuses] = useState<Record<string, 'active' | 'error' | 'idle'>>({})
+  const [teamAgentCounts, setTeamAgentCounts] = useState<Record<string, AgentCounts>>({})
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   const [modalTarget, setModalTarget] = useState<{ id: string; name: string } | null>(null)
@@ -164,6 +185,33 @@ function AuthenticatedApp({
       return { ...prev, [id]: status }
     })
   }, [])
+
+  // Agent counts callback
+  const handleAgentCounts = useCallback((id: string, counts: AgentCounts) => {
+    setTeamAgentCounts(prev => {
+      const existing = prev[id]
+      if (existing && existing.active === counts.active && existing.error === counts.error && existing.complete === counts.complete) {
+        return prev
+      }
+      return { ...prev, [id]: counts }
+    })
+  }, [])
+
+  // Aggregate stats for DashboardStats
+  const aggregateStats = useMemo(() => {
+    const allCounts = Object.values(teamAgentCounts)
+    const totalActiveAgents = allCounts.reduce((sum, c) => sum + c.active, 0)
+    const totalErrors = allCounts.reduce((sum, c) => sum + c.error, 0)
+    const totalCompleted = allCounts.reduce((sum, c) => sum + c.complete, 0)
+    const totalPhases = teams.length * AGENTS.length
+    return {
+      teamCount: teams.length,
+      activeAgents: totalActiveAgents,
+      errorCount: totalErrors,
+      completedPhases: totalCompleted,
+      totalPhases,
+    }
+  }, [teamAgentCounts, teams.length])
 
   // Team CRUD
   const handleCreateTeam = useCallback(async (name: string) => {
@@ -305,6 +353,19 @@ function AuthenticatedApp({
       </header>
 
       <main className="p-6" id="team-content" role="main">
+        {/* Dashboard Stats - grid view only */}
+        {!focusedTeamId && teams.length > 0 && (
+          <div className="mb-6 animate-fade-in">
+            <DashboardStats
+              teamCount={aggregateStats.teamCount}
+              activeAgents={aggregateStats.activeAgents}
+              errorCount={aggregateStats.errorCount}
+              completedPhases={aggregateStats.completedPhases}
+              totalPhases={aggregateStats.totalPhases}
+            />
+          </div>
+        )}
+
         {/* Search bar - hidden in focused view */}
         {!focusedTeamId && teams.length > 0 && (
           <div className="mb-6 animate-fade-in">
@@ -372,7 +433,7 @@ function AuthenticatedApp({
 
       {/* Invisible status trackers - one per team */}
       {teams.map(team => (
-        <TeamStatusTracker key={team.id} teamId={team.id} onStatus={handleStatusUpdate} onAgentError={handleAgentError} />
+        <TeamStatusTracker key={team.id} teamId={team.id} onStatus={handleStatusUpdate} onAgentError={handleAgentError} onAgentCounts={handleAgentCounts} />
       ))}
 
       {/* Create Team Dialog */}

@@ -6,6 +6,7 @@ import { Terminal } from './Terminal'
 import { TimelineView } from './TimelineView'
 import { Artifacts } from './Artifacts'
 import { AgentRoster } from './AgentRoster'
+import { WaterfallProgress } from './WaterfallProgress'
 
 interface TeamPanelProps {
   teamId: string
@@ -106,6 +107,9 @@ export function TeamPanel({ teamId, teamName, onClick }: TeamPanelProps) {
           </div>
         </div>
       </div>
+
+      {/* Waterfall Progress */}
+      <WaterfallProgress agents={agents} />
 
       {/* Content */}
       <div className="p-5">

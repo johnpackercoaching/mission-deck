@@ -239,6 +239,15 @@ test.describe('Mission Deck - Multi-Team Dashboard', () => {
     await expect(toastItems).toHaveCount(2, { timeout: 5000 })
   })
 
+  test('waterfall progress indicator is visible in team panel', async ({ page }) => {
+    const panel = page.locator('[data-testid^="team-panel-"]').first()
+    const waterfall = panel.locator('[data-testid="waterfall-progress"]')
+    await waterfall.scrollIntoViewIfNeeded()
+    await expect(waterfall).toBeVisible()
+    await expect(waterfall).toHaveRole('progressbar')
+    await expect(waterfall).toHaveAttribute('aria-valuemax', '8')
+  })
+
   test('no unexpected console errors on authenticated page', async ({ page }) => {
     const errors: string[] = []
     page.on('console', (msg) => {

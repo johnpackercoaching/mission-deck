@@ -274,6 +274,55 @@ test.describe('Mission Deck - Multi-Team Dashboard', () => {
     await expect(page.locator('[data-testid="dashboard-stats"]')).not.toBeVisible()
   })
 
+  test('agent metrics section is visible and expandable', async ({ page }) => {
+    const panel = page.locator('[data-testid^="team-panel-"]').first()
+    const metricsSection = panel.locator('[data-testid="agent-metrics"]')
+    await metricsSection.scrollIntoViewIfNeeded()
+    await expect(metricsSection).toBeVisible()
+    await expect(metricsSection).toHaveAttribute('aria-label', 'Agent performance metrics')
+
+    // Expand the metrics section
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-testid="agent-metrics"] button') as HTMLElement
+      btn?.click()
+    })
+    await expect(page.locator('[data-testid="agent-metrics-empty"]')).toBeVisible({ timeout: 3000 })
+  })
+
+  test('agent metrics shows data when timeline events exist', async ({ page }) => {
+    const teamId = await page.evaluate(() => {
+      const panel = document.querySelector('[data-testid^="team-panel-"]')
+      return panel?.getAttribute('data-testid')?.replace('team-panel-', '') ?? ''
+    })
+    const now = Date.now()
+    await page.evaluate(({ tid, ts }) => {
+      const w = (window as any).__mockWriteData
+      if (!w) return
+      w(`/mission-deck/teams/${tid}/timeline/evt1`, {
+        agentName: 'execution-agent',
+        status: 'active',
+        fromStatus: 'idle',
+        timestamp: ts - 5000,
+      })
+      w(`/mission-deck/teams/${tid}/timeline/evt2`, {
+        agentName: 'execution-agent',
+        status: 'complete',
+        fromStatus: 'active',
+        timestamp: ts,
+      })
+    }, { tid: teamId, ts: now })
+
+    const metricsSection = page.locator('[data-testid="agent-metrics"]')
+    await metricsSection.scrollIntoViewIfNeeded()
+
+    // Expand the metrics section
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-testid="agent-metrics"] button') as HTMLElement
+      btn?.click()
+    })
+    await expect(page.locator('[data-testid="agent-metric-row"]')).toBeVisible({ timeout: 5000 })
+  })
+
   test('no unexpected console errors on authenticated page', async ({ page }) => {
     const errors: string[] = []
     page.on('console', (msg) => {

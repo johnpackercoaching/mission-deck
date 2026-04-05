@@ -7,6 +7,7 @@ import { TimelineView } from './TimelineView'
 import { Artifacts } from './Artifacts'
 import { AgentRoster } from './AgentRoster'
 import { WaterfallProgress } from './WaterfallProgress'
+import { AgentMetrics } from './AgentMetrics'
 
 interface TeamPanelProps {
   teamId: string
@@ -110,6 +111,9 @@ export function TeamPanel({ teamId, teamName, onClick }: TeamPanelProps) {
 
       {/* Waterfall Progress */}
       <WaterfallProgress agents={agents} />
+
+      {/* Agent Metrics */}
+      <AgentMetrics teamId={teamId} />
 
       {/* Content */}
       <div className="p-5">

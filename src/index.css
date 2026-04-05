@@ -157,6 +157,24 @@ body {
   animation: timeline-event-in 0.2s ease-out both;
 }
 
+/* Agent detail animation */
+@keyframes agent-detail-enter {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+    transform: translateY(0);
+  }
+}
+
+.agent-detail-enter {
+  animation: agent-detail-enter 0.3s ease-out both;
+}
+
 /* Toast animations */
 @keyframes toast-slide-in {
   from {

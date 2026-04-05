@@ -4,6 +4,7 @@ import type { AgentId } from '../config'
 import type { AgentData } from '../schemas'
 import { writeData } from '../services/data'
 import { useRelativeTime } from '../utils/relative-time'
+import { AgentDetailPanel } from './AgentDetailPanel'
 import {
   PROJECT_RESUME_AGENT_PROMPT,
   NEXT_STEPS_AGENT_PROMPT,
@@ -55,6 +56,8 @@ const statusStyles: Record<string, { dot: string; label: string; badge: string }
 }
 
 export function AgentRoster({ teamId, agents }: AgentRosterProps) {
+  const [detailAgentId, setDetailAgentId] = useState<string | null>(null)
+
   return (
     <section className="space-y-3" aria-label="Agent roster">
       <h3 className="text-xs font-medium text-neutral-400 uppercase tracking-wider">
@@ -73,6 +76,8 @@ export function AgentRoster({ teamId, agents }: AgentRosterProps) {
               status={agentData?.status ?? 'idle'}
               systemPrompt={agentData?.systemPrompt || DEFAULT_PROMPTS[agentDef.id]}
               lastActivity={agentData?.lastActivity}
+              isDetailOpen={detailAgentId === agentDef.id}
+              onToggleDetail={() => setDetailAgentId(detailAgentId === agentDef.id ? null : agentDef.id)}
             />
           )
         })}
@@ -89,12 +94,14 @@ interface AgentRowProps {
   status: string
   systemPrompt: string
   lastActivity?: number
+  isDetailOpen: boolean
+  onToggleDetail: () => void
 }
 
-function AgentRow({ teamId, agentId, name, phase, status, systemPrompt, lastActivity }: AgentRowProps) {
+function AgentRow({ teamId, agentId, name, phase, status, systemPrompt, lastActivity, isDetailOpen, onToggleDetail }: AgentRowProps) {
   const relativeTime = useRelativeTime(lastActivity)
   const [localPrompt, setLocalPrompt] = useState(systemPrompt)
-  const [expanded, setExpanded] = useState(false)
+  const [promptExpanded, setPromptExpanded] = useState(false)
 
   useEffect(() => {
     setLocalPrompt(systemPrompt)
@@ -112,35 +119,50 @@ function AgentRow({ teamId, agentId, name, phase, status, systemPrompt, lastActi
       className="bg-neutral-900/80 border border-neutral-800/50 rounded-lg overflow-hidden hover:border-neutral-700/50 transition-colors duration-150"
       role="listitem"
     >
-      <button
-        className="focus-ring w-full flex items-center gap-2.5 px-3 py-2 text-left rounded-lg"
-        onClick={() => setExpanded(!expanded)}
-        aria-expanded={expanded}
-        aria-controls={`prompt-${agentId}`}
-      >
-        <span
-          className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-200 ${style.dot}`}
-          aria-label={`Status: ${style.label}`}
-        />
-        <span className="text-sm text-neutral-200 flex-1 truncate">{name}</span>
-        <span className="text-[10px] text-neutral-600 hidden sm:inline">{phase}</span>
-        <span className={`text-[10px] font-medium ${style.badge}`}>{style.label}</span>
-        {relativeTime && (
-          <span className="text-[10px] text-neutral-600 hidden sm:inline">{relativeTime}</span>
-        )}
-        <svg
-          className={`w-3 h-3 text-neutral-600 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          aria-hidden="true"
+      <div className="flex items-center">
+        {/* Agent name/status — opens detail panel */}
+        <button
+          className="focus-ring flex-1 flex items-center gap-2.5 px-3 py-2 text-left rounded-l-lg hover:bg-white/[0.02] transition-colors duration-100"
+          onClick={onToggleDetail}
+          aria-expanded={isDetailOpen}
+          aria-controls={`detail-${agentId}`}
+          data-testid={`agent-name-${agentId}`}
         >
-          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-        </svg>
-      </button>
+          <span
+            className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-200 ${style.dot}`}
+            aria-label={`Status: ${style.label}`}
+          />
+          <span className="text-sm text-neutral-200 flex-1 truncate">{name}</span>
+          <span className="text-[10px] text-neutral-600 hidden sm:inline">{phase}</span>
+          <span className={`text-[10px] font-medium ${style.badge}`}>{style.label}</span>
+          {relativeTime && (
+            <span className="text-[10px] text-neutral-600 hidden sm:inline">{relativeTime}</span>
+          )}
+        </button>
 
+        {/* Chevron — toggles system prompt */}
+        <button
+          className="focus-ring px-2.5 py-2 hover:bg-white/[0.03] transition-colors duration-100 rounded-r-lg"
+          onClick={() => setPromptExpanded(!promptExpanded)}
+          aria-expanded={promptExpanded}
+          aria-controls={`prompt-${agentId}`}
+          aria-label={`${promptExpanded ? 'Hide' : 'Show'} system prompt for ${name}`}
+        >
+          <svg
+            className={`w-3 h-3 text-neutral-600 transition-transform duration-200 ${promptExpanded ? 'rotate-180' : ''}`}
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+          </svg>
+        </button>
+      </div>
+
+      {/* System prompt accordion */}
       <div
         id={`prompt-${agentId}`}
-        className={`overflow-hidden transition-all duration-200 ${expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
+        className={`overflow-hidden transition-all duration-200 ${promptExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
       >
         <div className="px-3 pb-3 pt-1">
           <label htmlFor={`textarea-${agentId}`} className="sr-only">
@@ -156,6 +178,20 @@ function AgentRow({ teamId, agentId, name, phase, status, systemPrompt, lastActi
           />
         </div>
       </div>
+
+      {/* Agent detail panel */}
+      {isDetailOpen && (
+        <div id={`detail-${agentId}`} className="px-3 pb-3">
+          <AgentDetailPanel
+            agentId={agentId}
+            agentName={name}
+            phase={phase}
+            status={status}
+            teamId={teamId}
+            onClose={onToggleDetail}
+          />
+        </div>
+      )}
     </div>
   )
 }

@@ -323,6 +323,81 @@ test.describe('Mission Deck - Multi-Team Dashboard', () => {
     await expect(page.locator('[data-testid="agent-metric-row"]')).toBeVisible({ timeout: 5000 })
   })
 
+  test('clicking agent name opens detail panel with agent info', async ({ page }) => {
+    const teamId = await page.evaluate(() => {
+      const panel = document.querySelector('[data-testid^="team-panel-"]')
+      return panel?.getAttribute('data-testid')?.replace('team-panel-', '') ?? ''
+    })
+    const now = Date.now()
+    // Inject timeline data for execution-agent
+    await page.evaluate(({ tid, ts }) => {
+      const w = (window as any).__mockWriteData
+      if (!w) return
+      w(`/mission-deck/teams/${tid}/timeline/detail-evt1`, {
+        agentName: 'execution-agent',
+        status: 'active',
+        fromStatus: 'idle',
+        timestamp: ts - 10000,
+      })
+      w(`/mission-deck/teams/${tid}/timeline/detail-evt2`, {
+        agentName: 'execution-agent',
+        status: 'complete',
+        fromStatus: 'active',
+        timestamp: ts - 5000,
+      })
+      w(`/mission-deck/teams/${tid}/timeline/detail-evt3`, {
+        agentName: 'plan-builder-agent',
+        status: 'active',
+        fromStatus: 'idle',
+        timestamp: ts - 3000,
+      })
+    }, { tid: teamId, ts: now })
+
+    // Click the execution-agent name to open detail
+    const panel = page.locator('[data-testid^="team-panel-"]').first()
+    const agentNameBtn = panel.locator('[data-testid="agent-name-execution-agent"]')
+    await agentNameBtn.scrollIntoViewIfNeeded()
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-testid="agent-name-execution-agent"]') as HTMLElement
+      btn?.click()
+    })
+
+    // Detail panel should appear
+    const detailPanel = page.locator('[data-testid="agent-detail-panel"]')
+    await expect(detailPanel).toBeVisible({ timeout: 5000 })
+
+    // Should show correct agent name
+    const detailName = page.locator('[data-testid="agent-detail-name"]')
+    await expect(detailName).toContainText('Execution')
+
+    // Stats should be visible
+    await expect(page.locator('[data-testid="agent-detail-stats"]')).toBeVisible()
+
+    // Events should only show execution-agent events (not plan-builder-agent)
+    const events = page.locator('[data-testid="agent-detail-events"]')
+    await expect(events).toBeVisible()
+    const eventText = await events.textContent()
+    expect(eventText).not.toContain('plan-builder-agent')
+  })
+
+  test('agent detail panel close button hides panel', async ({ page }) => {
+    const panel = page.locator('[data-testid^="team-panel-"]').first()
+    const agentNameBtn = panel.locator('[data-testid="agent-name-execution-agent"]')
+    await agentNameBtn.scrollIntoViewIfNeeded()
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-testid="agent-name-execution-agent"]') as HTMLElement
+      btn?.click()
+    })
+    await expect(page.locator('[data-testid="agent-detail-panel"]')).toBeVisible({ timeout: 5000 })
+
+    // Close via close button
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-testid="agent-detail-close"]') as HTMLElement
+      btn?.click()
+    })
+    await expect(page.locator('[data-testid="agent-detail-panel"]')).not.toBeVisible({ timeout: 3000 })
+  })
+
   test('no unexpected console errors on authenticated page', async ({ page }) => {
     const errors: string[] = []
     page.on('console', (msg) => {

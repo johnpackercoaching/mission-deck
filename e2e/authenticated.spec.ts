@@ -398,6 +398,94 @@ test.describe('Mission Deck - Multi-Team Dashboard', () => {
     await expect(page.locator('[data-testid="agent-detail-panel"]')).not.toBeVisible({ timeout: 3000 })
   })
 
+  test('command palette trigger button visible in header', async ({ page }) => {
+    const trigger = page.locator('[data-testid="command-palette-trigger"]')
+    await expect(trigger).toBeVisible()
+    await expect(trigger).toHaveAttribute('aria-label', 'Open command palette')
+  })
+
+  test('command palette opens with trigger button and closes with Escape', async ({ page }) => {
+    await expect(page.locator('[data-testid="command-palette"]')).not.toBeVisible()
+    // Use evaluate to click trigger (avoids Playwright actionability hang on sticky header)
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="command-palette-trigger"]') as HTMLElement)?.click()
+    })
+    await expect(page.locator('[data-testid="command-palette"]')).toBeVisible({ timeout: 3000 })
+    // Close via Escape key dispatched through evaluate
+    await page.evaluate(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    })
+    await expect(page.locator('[data-testid="command-palette"]')).not.toBeVisible({ timeout: 3000 })
+  })
+
+  test('command palette search filters actions', async ({ page }) => {
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="command-palette-trigger"]') as HTMLElement)?.click()
+    })
+    await expect(page.locator('[data-testid="command-palette"]')).toBeVisible({ timeout: 3000 })
+    const items = page.locator('[data-testid="command-palette-item"]')
+    const initialCount = await items.count()
+    expect(initialCount).toBeGreaterThan(0)
+
+    // Type to filter using native value setter (same pattern as create team)
+    await page.evaluate(() => {
+      const input = document.querySelector('[data-testid="command-palette-input"]') as HTMLInputElement
+      if (input) {
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+        nativeInputValueSetter?.call(input, 'Create')
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+        input.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+    const filteredCount = await items.count()
+    expect(filteredCount).toBeLessThan(initialCount)
+    await expect(items.first()).toContainText('Create')
+  })
+
+  test('command palette Create New Team action opens create dialog', async ({ page }) => {
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="command-palette-trigger"]') as HTMLElement)?.click()
+    })
+    await expect(page.locator('[data-testid="command-palette"]')).toBeVisible({ timeout: 3000 })
+    // Click Create New Team action
+    await page.evaluate(() => {
+      const items = document.querySelectorAll('[data-testid="command-palette-item"]')
+      for (const item of items) {
+        if (item.textContent?.includes('Create New Team')) {
+          ;(item as HTMLElement).click()
+          break
+        }
+      }
+    })
+    await expect(page.locator('[data-testid="command-palette"]')).not.toBeVisible({ timeout: 3000 })
+    await expect(page.locator('[data-testid="create-team-dialog"]')).toBeVisible({ timeout: 3000 })
+  })
+
+  test('command palette switch team enters focused view', async ({ page }) => {
+    // Create a second team first
+    await createTeam(page, 'Palette Test Team')
+    await expect(page.locator('[data-testid^="team-panel-"]')).toHaveCount(2)
+
+    // Open palette
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="command-palette-trigger"]') as HTMLElement)?.click()
+    })
+    await expect(page.locator('[data-testid="command-palette"]')).toBeVisible({ timeout: 3000 })
+    // Click the team switch action
+    await page.evaluate(() => {
+      const items = document.querySelectorAll('[data-testid="command-palette-item"]')
+      for (const item of items) {
+        if (item.textContent?.includes('Palette Test Team')) {
+          ;(item as HTMLElement).click()
+          break
+        }
+      }
+    })
+    await expect(page.locator('[data-testid="command-palette"]')).not.toBeVisible({ timeout: 3000 })
+    // Should be in focused view with just one panel
+    await expect(page.locator('[data-testid^="team-panel-"]')).toHaveCount(1)
+  })
+
   test('no unexpected console errors on authenticated page', async ({ page }) => {
     const errors: string[] = []
     page.on('console', (msg) => {

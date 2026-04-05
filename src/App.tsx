@@ -18,6 +18,7 @@ import { TeamDataSchema } from './schemas'
 
 const LoginPage = lazy(() => import('./components/LoginPage').then(m => ({ default: m.LoginPage })))
 const TeamDetailModal = lazy(() => import('./components/TeamDetailModal').then(m => ({ default: m.TeamDetailModal })))
+const CommandPalette = lazy(() => import('./components/CommandPalette').then(m => ({ default: m.CommandPalette })))
 
 const STORAGE_KEY = 'mission-deck-focused-team'
 
@@ -154,6 +155,19 @@ function AuthenticatedApp({
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   const [modalTarget, setModalTarget] = useState<{ id: string; name: string } | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+
+  // Global Cmd+K / Ctrl+K shortcut
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setCommandPaletteOpen(prev => !prev)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Persist focused team to localStorage
   useEffect(() => {
@@ -240,6 +254,11 @@ function AuthenticatedApp({
     setFocusedTeamId(teamId)
   }, [])
 
+  const handleSetStatusFilter = useCallback((filter: StatusFilter) => {
+    setStatusFilter(filter)
+    setFocusedTeamId(null)
+  }, [])
+
   const handleOpenModal = useCallback((teamId: string, teamName: string) => {
     setModalTarget({ id: teamId, name: teamName })
   }, [])
@@ -324,6 +343,14 @@ function AuthenticatedApp({
                 ? `Viewing ${focusedTeam.name}`
                 : `${teams.length} team${teams.length !== 1 ? 's' : ''}`}
             </span>
+            <button
+              onClick={() => setCommandPaletteOpen(true)}
+              className="focus-ring text-xs text-neutral-500 hover:text-neutral-300 px-2 py-1 rounded-md border border-neutral-700 hover:border-neutral-600 hover:bg-neutral-800/50 transition-all duration-150 hidden sm:inline-flex items-center gap-1"
+              aria-label="Open command palette"
+              data-testid="command-palette-trigger"
+            >
+              <kbd className="font-sans">&#x2318;K</kbd>
+            </button>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-neutral-500 hidden sm:inline truncate max-w-48">
@@ -467,6 +494,19 @@ function AuthenticatedApp({
 
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onDismiss={handleDismissToast} />
+
+      {/* Command Palette */}
+      <Suspense fallback={null}>
+        <CommandPalette
+          isOpen={commandPaletteOpen}
+          onClose={() => setCommandPaletteOpen(false)}
+          teams={teamTabs}
+          focusedTeamId={focusedTeamId}
+          onSelectTeam={handleSelectTeam}
+          onCreateTeam={() => { setCreateDialogOpen(true); setCommandPaletteOpen(false) }}
+          onSetStatusFilter={handleSetStatusFilter}
+        />
+      </Suspense>
     </div>
   )
 }

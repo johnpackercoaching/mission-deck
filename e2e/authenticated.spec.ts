@@ -559,6 +559,75 @@ test.describe('Mission Deck - Multi-Team Dashboard', () => {
     await expect(teamNamePill.first()).toBeVisible({ timeout: 5000 })
   })
 
+  test('settings trigger button visible in header', async ({ page }) => {
+    const trigger = page.locator('[data-testid="settings-trigger"]')
+    await expect(trigger).toBeVisible()
+    await expect(trigger).toHaveAttribute('aria-label', 'Open settings')
+  })
+
+  test('settings panel opens and closes', async ({ page }) => {
+    await expect(page.locator('[data-testid="settings-panel"]')).not.toBeVisible()
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="settings-trigger"]') as HTMLElement)?.click()
+    })
+    await expect(page.locator('[data-testid="settings-panel"]')).toBeVisible({ timeout: 3000 })
+    // Close via Done button
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="settings-done"]') as HTMLElement)?.click()
+    })
+    await expect(page.locator('[data-testid="settings-panel"]')).not.toBeVisible({ timeout: 3000 })
+  })
+
+  test('settings panel closes with Escape key', async ({ page }) => {
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="settings-trigger"]') as HTMLElement)?.click()
+    })
+    await expect(page.locator('[data-testid="settings-panel"]')).toBeVisible({ timeout: 3000 })
+    await page.evaluate(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    })
+    await expect(page.locator('[data-testid="settings-panel"]')).not.toBeVisible({ timeout: 3000 })
+  })
+
+  test('theme toggle switches between dark and light', async ({ page }) => {
+    // Default is dark
+    const htmlTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'))
+    expect(htmlTheme).toBe('dark')
+
+    // Open settings
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="settings-trigger"]') as HTMLElement)?.click()
+    })
+    await expect(page.locator('[data-testid="settings-panel"]')).toBeVisible({ timeout: 3000 })
+
+    // Dark should be checked
+    await expect(page.locator('[data-testid="theme-dark"]')).toHaveAttribute('aria-checked', 'true')
+    await expect(page.locator('[data-testid="theme-light"]')).toHaveAttribute('aria-checked', 'false')
+
+    // Switch to light
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="theme-light"]') as HTMLElement)?.click()
+    })
+    const lightTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'))
+    expect(lightTheme).toBe('light')
+    await expect(page.locator('[data-testid="theme-light"]')).toHaveAttribute('aria-checked', 'true')
+    await expect(page.locator('[data-testid="theme-dark"]')).toHaveAttribute('aria-checked', 'false')
+  })
+
+  test('theme preference persists in localStorage', async ({ page }) => {
+    // Open settings and switch to light
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="settings-trigger"]') as HTMLElement)?.click()
+    })
+    await expect(page.locator('[data-testid="settings-panel"]')).toBeVisible({ timeout: 3000 })
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="theme-light"]') as HTMLElement)?.click()
+    })
+    // Check localStorage
+    const stored = await page.evaluate(() => localStorage.getItem('mission-deck-theme'))
+    expect(stored).toBe('light')
+  })
+
   test('no unexpected console errors on authenticated page', async ({ page }) => {
     const errors: string[] = []
     page.on('console', (msg) => {

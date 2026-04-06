@@ -7,11 +7,13 @@ import type { StatusFilter } from './components/SearchBar'
 import { DashboardStats } from './components/DashboardStats'
 import { CreateTeamDialog } from './components/CreateTeamDialog'
 import { DeleteTeamDialog } from './components/DeleteTeamDialog'
+import { SettingsPanel } from './components/SettingsPanel'
 import { ToastContainer } from './components/ToastContainer'
 import type { Toast } from './components/ToastContainer'
 import { useConnectionStatus } from './hooks/useConnectionStatus'
 import { useUserTeam } from './hooks/useUserTeam'
 import { useTeamList } from './hooks/useTeamList'
+import { useTheme } from './hooks/useTheme'
 import { LiveActivityFeed } from './components/LiveActivityFeed'
 import type { ActivityEvent } from './components/LiveActivityFeed'
 import { useData, writeData, removeData } from './services/data'
@@ -176,6 +178,9 @@ function AuthenticatedApp({
   // Read all teams
   const { teams, loading: teamsLoading } = useTeamList()
 
+  // Theme
+  const { theme, setTheme } = useTheme()
+
   // UI state
   const [focusedTeamId, setFocusedTeamId] = useState<string | null>(getInitialFocusedTeam)
   const [searchQuery, setSearchQuery] = useState('')
@@ -187,6 +192,7 @@ function AuthenticatedApp({
   const [modalTarget, setModalTarget] = useState<{ id: string; name: string } | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   // Cross-team timeline events for live activity feed
   const [teamTimelineData, setTeamTimelineData] = useState<Record<string, { teamName: string; events: Record<string, { agentName: string; status: string; fromStatus?: string | null; timestamp: number; message?: string }> }>>({})
@@ -393,8 +399,8 @@ function AuthenticatedApp({
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950">
-      <header className="sticky top-0 z-10 bg-neutral-950/80 backdrop-blur-md border-b border-neutral-800/50">
+    <div className="min-h-screen bg-app">
+      <header className="sticky top-0 z-10 bg-header backdrop-blur-md border-b border-themed">
         <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
@@ -403,18 +409,18 @@ function AuthenticatedApp({
                 title={connected ? 'Connected to Firebase' : 'Disconnected from Firebase'}
                 aria-label={connected ? 'Connected to Firebase' : 'Disconnected from Firebase'}
               />
-              <h1 className="text-xl font-semibold text-neutral-100 tracking-tight">
+              <h1 className="text-xl font-semibold text-heading tracking-tight">
                 Mission Deck
               </h1>
             </div>
-            <span className="text-sm text-neutral-500">
+            <span className="text-sm text-secondary">
               {focusedTeam
                 ? `Viewing ${focusedTeam.name}`
                 : `${teams.length} team${teams.length !== 1 ? 's' : ''}`}
             </span>
             <button
               onClick={() => setCommandPaletteOpen(true)}
-              className="focus-ring text-xs text-neutral-500 hover:text-neutral-300 px-2 py-1 rounded-md border border-neutral-700 hover:border-neutral-600 hover:bg-neutral-800/50 transition-all duration-150 hidden sm:inline-flex items-center gap-1"
+              className="focus-ring text-xs text-secondary hover:text-heading px-2 py-1 rounded-md border border-themed hover:bg-hover transition-all duration-150 hidden sm:inline-flex items-center gap-1"
               aria-label="Open command palette"
               data-testid="command-palette-trigger"
             >
@@ -422,12 +428,23 @@ function AuthenticatedApp({
             </button>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-neutral-500 hidden sm:inline truncate max-w-48">
+            <span className="text-sm text-secondary hidden sm:inline truncate max-w-48">
               {user.email}
             </span>
             <button
+              onClick={() => setSettingsOpen(true)}
+              className="focus-ring text-secondary hover:text-heading p-1.5 rounded-md hover:bg-surface-800/50 transition-all duration-150"
+              aria-label="Open settings"
+              data-testid="settings-trigger"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+            <button
               onClick={() => void signOut()}
-              className="focus-ring text-xs text-neutral-500 hover:text-neutral-300 px-3 py-1.5 rounded-md hover:bg-neutral-800/50 transition-all duration-150"
+              className="focus-ring text-xs text-secondary hover:text-heading px-3 py-1.5 rounded-md hover:bg-surface-800/50 transition-all duration-150"
               aria-label="Sign out"
             >
               Sign out
@@ -588,6 +605,14 @@ function AuthenticatedApp({
           onSetStatusFilter={handleSetStatusFilter}
         />
       </Suspense>
+
+      {/* Settings Panel */}
+      <SettingsPanel
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        theme={theme}
+        onThemeChange={setTheme}
+      />
     </div>
   )
 }

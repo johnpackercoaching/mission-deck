@@ -20,7 +20,7 @@ export function TeamPanel({ teamId, teamName, onClick }: TeamPanelProps) {
 
   if (loading) {
     return (
-      <div className="bg-neutral-900/60 border border-neutral-800/60 rounded-xl p-5" data-testid={`team-panel-${teamId}`}>
+      <div className="bg-neutral-900/60 border border-neutral-800/60 rounded-xl p-3 sm:p-5" data-testid={`team-panel-${teamId}`}>
         <div className="flex items-center gap-3 mb-4">
           <div className="w-2 h-2 rounded-full bg-neutral-600 animate-pulse-dot" />
           <h2 className="text-lg font-semibold text-neutral-200">{teamName}</h2>
@@ -35,7 +35,7 @@ export function TeamPanel({ teamId, teamName, onClick }: TeamPanelProps) {
 
   if (error) {
     return (
-      <div className="bg-neutral-900/60 border border-red-900/40 rounded-xl p-5" data-testid={`team-panel-${teamId}`} role="alert">
+      <div className="bg-neutral-900/60 border border-red-900/40 rounded-xl p-3 sm:p-5" data-testid={`team-panel-${teamId}`} role="alert">
         <h2 className="text-lg font-semibold text-neutral-200 mb-2">{teamName}</h2>
         <p className="text-sm text-red-400 bg-red-950/20 rounded-lg px-3 py-2">
           Failed to load: {error}
@@ -61,7 +61,7 @@ export function TeamPanel({ teamId, teamName, onClick }: TeamPanelProps) {
     >
       {/* Header with accent top border */}
       <div
-        className={`border-b border-neutral-800/40 px-5 py-4 ${onClick ? 'cursor-pointer hover:bg-neutral-800/30 transition-colors duration-150' : ''}`}
+        className={`border-b border-neutral-800/40 px-3 sm:px-5 py-3 sm:py-4 ${onClick ? 'cursor-pointer hover:bg-neutral-800/30 transition-colors duration-150' : ''}`}
         onClick={onClick}
         onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } } : undefined}
         role={onClick ? 'button' : undefined}
@@ -116,9 +116,9 @@ export function TeamPanel({ teamId, teamName, onClick }: TeamPanelProps) {
       <AgentMetrics teamId={teamId} />
 
       {/* Content */}
-      <div className="p-5">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5">
-          <div className="space-y-5">
+      <div className="p-3 sm:p-5">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-3 sm:gap-5">
+          <div className="space-y-3 sm:space-y-5">
             <ProjectPreview previewUrl={project.previewUrl ?? ''} />
             <Prompts teamId={teamId} prompts={project.prompts ?? {}} />
             <Terminal lines={terminal.lines ?? {}} />

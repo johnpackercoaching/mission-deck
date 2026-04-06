@@ -29,7 +29,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
 
   return (
     <div
-      className="toast-enter flex items-start gap-3 bg-red-950/80 border border-red-900/50 backdrop-blur-sm rounded-lg px-4 py-3 shadow-lg shadow-red-950/20 max-w-sm"
+      className="toast-enter flex items-start gap-3 bg-red-950/80 border border-red-900/50 backdrop-blur-sm rounded-lg px-4 py-3 shadow-lg shadow-red-950/20 max-w-full sm:max-w-sm"
       role="alert"
       data-testid={`toast-${toast.id}`}
     >
@@ -57,7 +57,7 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
 
   return createPortal(
     <div
-      className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-auto"
+      className="fixed bottom-3 right-3 left-3 sm:left-auto sm:right-4 sm:bottom-4 z-50 flex flex-col gap-2 pointer-events-auto"
       data-testid="toast-container"
       aria-live="polite"
       aria-label="Notifications"

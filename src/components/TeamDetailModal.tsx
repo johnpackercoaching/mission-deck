@@ -118,7 +118,7 @@ export function TeamDetailModal({ teamId, teamName, isOpen, onClose }: TeamDetai
     >
       <div
         ref={contentRef}
-        className="relative w-full max-w-5xl mx-4 my-8 modal-content-enter"
+        className="relative w-full max-w-5xl mx-2 sm:mx-4 my-4 sm:my-8 modal-content-enter"
       >
         {/* Close button */}
         <div className="flex items-center justify-between mb-4">

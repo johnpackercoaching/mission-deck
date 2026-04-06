@@ -187,12 +187,12 @@ export function CommandPalette({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] modal-backdrop-enter"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] sm:pt-[20vh] modal-backdrop-enter"
       onClick={handleOverlayClick}
       data-testid="command-palette"
     >
       <div
-        className="w-full max-w-lg mx-4 bg-neutral-900 border border-neutral-700/60 rounded-xl shadow-2xl command-palette-enter overflow-hidden"
+        className="w-full max-w-lg mx-2 sm:mx-4 bg-neutral-900 border border-neutral-700/60 rounded-xl shadow-2xl command-palette-enter overflow-hidden"
         role="combobox"
         aria-expanded="true"
         aria-haspopup="listbox"
@@ -299,7 +299,7 @@ export function CommandPalette({
           )}
         </ul>
 
-        <div className="flex items-center gap-4 px-4 py-2 border-t border-neutral-800/60 text-[10px] text-neutral-600">
+        <div className="hidden sm:flex items-center gap-4 px-4 py-2 border-t border-neutral-800/60 text-[10px] text-neutral-600">
           <span className="flex items-center gap-1">
             <kbd className="border border-neutral-800 rounded px-1 py-0.5 font-mono">&#x2191;</kbd>
             <kbd className="border border-neutral-800 rounded px-1 py-0.5 font-mono">&#x2193;</kbd>

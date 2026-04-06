@@ -17,12 +17,12 @@ interface StatCardProps {
 function StatCard({ label, value, color, testId, suffix }: StatCardProps) {
   return (
     <div
-      className="bg-neutral-900/60 border border-neutral-800/60 rounded-lg px-4 py-3 hover:border-neutral-700/60 transition-colors duration-200"
+      className="bg-neutral-900/60 border border-neutral-800/60 rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 hover:border-neutral-700/60 transition-colors duration-200"
       data-testid={testId}
     >
       <div className="flex items-baseline gap-2">
         <span
-          className="text-2xl font-semibold tabular-nums transition-colors duration-300"
+          className="text-xl sm:text-2xl font-semibold tabular-nums transition-colors duration-300"
           style={{ color }}
         >
           {value}

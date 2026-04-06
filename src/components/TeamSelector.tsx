@@ -55,7 +55,7 @@ export function TeamSelector({ teams, focusedTeamId, onSelectTeam, onCreateTeam,
         aria-controls="team-content"
         onClick={() => onSelectTeam(null)}
         onKeyDown={(e) => handleKeyDown(e, null)}
-        className={`focus-ring shrink-0 flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-all duration-150 ${
+        className={`focus-ring shrink-0 flex items-center gap-2 text-sm font-medium px-3 py-1.5 min-h-[44px] rounded-lg transition-all duration-150 ${
           isAllSelected
             ? 'bg-accent-500/15 text-accent-400 border border-accent-500/30'
             : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/40 border border-transparent'
@@ -94,7 +94,7 @@ export function TeamSelector({ teams, focusedTeamId, onSelectTeam, onCreateTeam,
             aria-controls="team-content"
             onClick={() => onSelectTeam(team.id)}
             onKeyDown={(e) => handleKeyDown(e, team.id)}
-            className={`group/tab focus-ring shrink-0 flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-lg transition-all duration-150 ${
+            className={`group/tab focus-ring shrink-0 flex items-center gap-2 text-sm font-medium px-3 py-1.5 min-h-[44px] rounded-lg transition-all duration-150 ${
               isSelected
                 ? 'bg-accent-500/15 text-accent-400 border border-accent-500/30'
                 : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/40 border border-transparent'
@@ -129,7 +129,7 @@ export function TeamSelector({ teams, focusedTeamId, onSelectTeam, onCreateTeam,
           <div className="w-px h-5 bg-neutral-800/60 shrink-0 mx-0.5" aria-hidden="true" />
           <button
             onClick={onCreateTeam}
-            className="focus-ring shrink-0 flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg text-neutral-500 hover:text-accent-400 hover:bg-neutral-800/40 border border-transparent hover:border-accent-500/20 transition-all duration-150"
+            className="focus-ring shrink-0 flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 min-h-[44px] rounded-lg text-neutral-500 hover:text-accent-400 hover:bg-neutral-800/40 border border-transparent hover:border-accent-500/20 transition-all duration-150"
             aria-label="Create new team"
             data-testid="create-team-button"
           >

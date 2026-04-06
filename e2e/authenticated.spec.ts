@@ -628,6 +628,105 @@ test.describe('Mission Deck - Multi-Team Dashboard', () => {
     expect(stored).toBe('light')
   })
 
+  test('export menu button visible in team panel', async ({ page }) => {
+    const panel = page.locator('[data-testid^="team-panel-"]').first()
+    const exportMenu = panel.locator('[data-testid="export-menu"]')
+    await expect(exportMenu).toBeVisible()
+    const trigger = panel.locator('[data-testid="export-trigger"]')
+    await expect(trigger).toBeVisible()
+    await expect(trigger).toHaveAttribute('aria-label', 'Export team data')
+    await expect(trigger).toHaveAttribute('aria-haspopup', 'menu')
+  })
+
+  test('export dropdown opens on click and shows format options', async ({ page }) => {
+    await expect(page.locator('[data-testid="export-dropdown"]')).not.toBeVisible()
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-testid="export-trigger"]') as HTMLElement
+      btn?.click()
+    })
+    const dropdown = page.locator('[data-testid="export-dropdown"]')
+    await expect(dropdown).toBeVisible({ timeout: 3000 })
+    await expect(dropdown).toHaveAttribute('role', 'menu')
+    await expect(page.locator('[data-testid="export-json"]')).toBeVisible()
+    await expect(page.locator('[data-testid="export-csv"]')).toBeVisible()
+  })
+
+  test('export dropdown closes on Escape key', async ({ page }) => {
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-testid="export-trigger"]') as HTMLElement
+      btn?.click()
+    })
+    await expect(page.locator('[data-testid="export-dropdown"]')).toBeVisible({ timeout: 3000 })
+    await page.evaluate(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    })
+    await expect(page.locator('[data-testid="export-dropdown"]')).not.toBeVisible({ timeout: 3000 })
+  })
+
+  test('JSON export triggers file download', async ({ page }) => {
+    const teamId = await page.evaluate(() => {
+      const panel = document.querySelector('[data-testid^="team-panel-"]')
+      return panel?.getAttribute('data-testid')?.replace('team-panel-', '') ?? ''
+    })
+    await page.evaluate(({ tid, ts }) => {
+      const w = (window as any).__mockWriteData
+      if (!w) return
+      w(`/mission-deck/teams/${tid}/timeline/export-evt1`, {
+        agentName: 'execution-agent',
+        status: 'active',
+        fromStatus: 'idle',
+        timestamp: ts - 5000,
+      })
+    }, { tid: teamId, ts: Date.now() })
+
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-testid="export-trigger"]') as HTMLElement
+      btn?.click()
+    })
+    await expect(page.locator('[data-testid="export-dropdown"]')).toBeVisible({ timeout: 3000 })
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download', { timeout: 5000 }),
+      page.evaluate(() => {
+        const btn = document.querySelector('[data-testid="export-json"]') as HTMLElement
+        btn?.click()
+      }),
+    ])
+    expect(download.suggestedFilename()).toContain('.json')
+  })
+
+  test('CSV export triggers file download', async ({ page }) => {
+    const teamId = await page.evaluate(() => {
+      const panel = document.querySelector('[data-testid^="team-panel-"]')
+      return panel?.getAttribute('data-testid')?.replace('team-panel-', '') ?? ''
+    })
+    await page.evaluate(({ tid, ts }) => {
+      const w = (window as any).__mockWriteData
+      if (!w) return
+      w(`/mission-deck/teams/${tid}/timeline/csv-evt1`, {
+        agentName: 'plan-builder-agent',
+        status: 'complete',
+        fromStatus: 'active',
+        timestamp: ts,
+      })
+    }, { tid: teamId, ts: Date.now() })
+
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-testid="export-trigger"]') as HTMLElement
+      btn?.click()
+    })
+    await expect(page.locator('[data-testid="export-dropdown"]')).toBeVisible({ timeout: 3000 })
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download', { timeout: 5000 }),
+      page.evaluate(() => {
+        const btn = document.querySelector('[data-testid="export-csv"]') as HTMLElement
+        btn?.click()
+      }),
+    ])
+    expect(download.suggestedFilename()).toContain('.csv')
+  })
+
   test('no unexpected console errors on authenticated page', async ({ page }) => {
     const errors: string[] = []
     page.on('console', (msg) => {

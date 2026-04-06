@@ -8,6 +8,7 @@ import { Artifacts } from './Artifacts'
 import { AgentRoster } from './AgentRoster'
 import { WaterfallProgress } from './WaterfallProgress'
 import { AgentMetrics } from './AgentMetrics'
+import { ExportMenu } from './ExportMenu'
 
 interface TeamPanelProps {
   teamId: string
@@ -105,6 +106,7 @@ export function TeamPanel({ teamId, teamName, onClick }: TeamPanelProps) {
                 {errorAgentCount} error
               </span>
             )}
+            <ExportMenu teamName={name || teamName} data={data} />
           </div>
         </div>
       </div>

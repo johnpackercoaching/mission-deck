@@ -8,6 +8,7 @@ import { DashboardStats } from './components/DashboardStats'
 import { CreateTeamDialog } from './components/CreateTeamDialog'
 import { DeleteTeamDialog } from './components/DeleteTeamDialog'
 import { SettingsPanel } from './components/SettingsPanel'
+import { KeyboardShortcutsPanel } from './components/KeyboardShortcutsPanel'
 import { ToastContainer } from './components/ToastContainer'
 import type { Toast } from './components/ToastContainer'
 import { useConnectionStatus } from './hooks/useConnectionStatus'
@@ -193,6 +194,7 @@ function AuthenticatedApp({
   const [toasts, setToasts] = useState<Toast[]>([])
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
 
   // Cross-team timeline events for live activity feed
   const [teamTimelineData, setTeamTimelineData] = useState<Record<string, { teamName: string; events: Record<string, { agentName: string; status: string; fromStatus?: string | null; timestamp: number; message?: string }> }>>({})
@@ -238,6 +240,21 @@ function AuthenticatedApp({
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         setCommandPaletteOpen(prev => !prev)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  // Global ? shortcut for keyboard shortcuts panel
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const target = e.target as HTMLElement
+        const tag = target.tagName
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable) return
+        e.preventDefault()
+        setShortcutsOpen(prev => !prev)
       }
     }
     document.addEventListener('keydown', handleKeyDown)
@@ -426,6 +443,14 @@ function AuthenticatedApp({
             >
               <kbd className="font-sans">&#x2318;K</kbd>
             </button>
+            <button
+              onClick={() => setShortcutsOpen(true)}
+              className="focus-ring text-xs text-secondary hover:text-heading px-2 py-1 rounded-md border border-themed hover:bg-hover transition-all duration-150 hidden sm:inline-flex items-center gap-1"
+              aria-label="Open keyboard shortcuts"
+              data-testid="shortcuts-trigger"
+            >
+              <kbd className="font-sans">?</kbd>
+            </button>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-secondary hidden sm:inline truncate max-w-48">
@@ -612,6 +637,12 @@ function AuthenticatedApp({
         onClose={() => setSettingsOpen(false)}
         theme={theme}
         onThemeChange={setTheme}
+      />
+
+      {/* Keyboard Shortcuts Panel */}
+      <KeyboardShortcutsPanel
+        isOpen={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
       />
     </div>
   )

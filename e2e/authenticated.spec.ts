@@ -727,6 +727,54 @@ test.describe('Mission Deck - Multi-Team Dashboard', () => {
     expect(download.suggestedFilename()).toContain('.csv')
   })
 
+  test('keyboard shortcuts trigger button visible in header', async ({ page }) => {
+    const trigger = page.locator('[data-testid="shortcuts-trigger"]')
+    await expect(trigger).toBeVisible()
+    await expect(trigger).toHaveAttribute('aria-label', 'Open keyboard shortcuts')
+  })
+
+  test('keyboard shortcuts panel opens with ? key and closes with Escape', async ({ page }) => {
+    await expect(page.locator('[data-testid="keyboard-shortcuts-panel"]')).not.toBeVisible()
+    // Press ? key to open
+    await page.evaluate(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }))
+    })
+    await expect(page.locator('[data-testid="keyboard-shortcuts-panel"]')).toBeVisible({ timeout: 3000 })
+    // Should have ARIA dialog role
+    await expect(page.locator('[data-testid="keyboard-shortcuts-panel"]')).toHaveAttribute('role', 'dialog')
+    await expect(page.locator('[data-testid="keyboard-shortcuts-panel"]')).toHaveAttribute('aria-modal', 'true')
+    // Close via Escape
+    await page.evaluate(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    })
+    await expect(page.locator('[data-testid="keyboard-shortcuts-panel"]')).not.toBeVisible({ timeout: 3000 })
+  })
+
+  test('keyboard shortcuts panel shows shortcut items grouped by category', async ({ page }) => {
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="shortcuts-trigger"]') as HTMLElement)?.click()
+    })
+    await expect(page.locator('[data-testid="keyboard-shortcuts-panel"]')).toBeVisible({ timeout: 3000 })
+    const items = page.locator('[data-testid="shortcut-item"]')
+    const count = await items.count()
+    expect(count).toBeGreaterThanOrEqual(6)
+    // Close via Done button
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="shortcuts-done"]') as HTMLElement)?.click()
+    })
+    await expect(page.locator('[data-testid="keyboard-shortcuts-panel"]')).not.toBeVisible({ timeout: 3000 })
+  })
+
+  test('keyboard shortcuts panel does not open when typing in search input', async ({ page }) => {
+    const searchInput = page.locator('[data-testid="search-input"]')
+    await searchInput.focus()
+    await page.evaluate(() => {
+      const input = document.querySelector('[data-testid="search-input"]') as HTMLElement
+      input?.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }))
+    })
+    await expect(page.locator('[data-testid="keyboard-shortcuts-panel"]')).not.toBeVisible()
+  })
+
   test('no unexpected console errors on authenticated page', async ({ page }) => {
     const errors: string[] = []
     page.on('console', (msg) => {

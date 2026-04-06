@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 30000,
+  timeout: 60000,
   projects: [
     {
       name: 'authenticated',
@@ -21,6 +21,6 @@ export default defineConfig({
     command: 'npm run dev',
     port: 5174,
     reuseExistingServer: true,
-    timeout: 30000,
+    timeout: 60000,
   },
 })

@@ -13,21 +13,21 @@ interface TimelineViewProps {
 
 const MAX_DISPLAY_EVENTS = 200
 
-const statusColors: Record<string, string> = {
+export const statusColors: Record<string, string> = {
   idle: '#9ca3af',
   active: '#34d399',
   complete: '#38bdf8',
   error: '#f87171',
 }
 
-const statusLabels: Record<string, string> = {
+export const statusLabels: Record<string, string> = {
   idle: 'Idle',
   active: 'Active',
   complete: 'Complete',
   error: 'Error',
 }
 
-const phaseColors: Record<string, string> = {
+export const phaseColors: Record<string, string> = {
   Orientation: '#9ca3af',
   Direction: '#a78bfa',
   'Product Scoping': '#f472b6',
@@ -38,7 +38,7 @@ const phaseColors: Record<string, string> = {
   Verification: '#38bdf8',
 }
 
-function getPhaseForAgent(agentName: string): string {
+export function getPhaseForAgent(agentName: string): string {
   const agent = AGENTS.find((a) => a.id === agentName || a.name === agentName)
   return agent?.phase ?? 'Other'
 }

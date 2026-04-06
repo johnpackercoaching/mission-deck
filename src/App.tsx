@@ -12,9 +12,12 @@ import type { Toast } from './components/ToastContainer'
 import { useConnectionStatus } from './hooks/useConnectionStatus'
 import { useUserTeam } from './hooks/useUserTeam'
 import { useTeamList } from './hooks/useTeamList'
+import { LiveActivityFeed } from './components/LiveActivityFeed'
+import type { ActivityEvent } from './components/LiveActivityFeed'
 import { useData, writeData, removeData } from './services/data'
 import { MAX_TEAMS, AGENTS } from './config'
-import { TeamDataSchema } from './schemas'
+import { TeamDataSchema, TimelineEventSchema } from './schemas'
+import { z } from 'zod'
 
 const LoginPage = lazy(() => import('./components/LoginPage').then(m => ({ default: m.LoginPage })))
 const TeamDetailModal = lazy(() => import('./components/TeamDetailModal').then(m => ({ default: m.TeamDetailModal })))
@@ -97,6 +100,34 @@ function TeamStatusTracker({
   return null
 }
 
+/** Invisible component that subscribes to a team's timeline and reports events */
+function TimelineDataCollector({
+  teamId,
+  teamName,
+  onEvents,
+}: {
+  teamId: string
+  teamName: string
+  onEvents: (teamId: string, teamName: string, events: Record<string, { agentName: string; status: string; fromStatus?: string | null; timestamp: number; message?: string }> | null) => void
+}) {
+  const { data: timeline } = useData(
+    `teams/${teamId}/timeline`,
+    z.record(z.string(), TimelineEventSchema),
+  )
+  const onEventsRef = useRef(onEvents)
+  onEventsRef.current = onEvents
+  const prevJsonRef = useRef<string>('')
+
+  useEffect(() => {
+    const json = JSON.stringify(timeline) ?? ''
+    if (json === prevJsonRef.current) return
+    prevJsonRef.current = json
+    onEventsRef.current(teamId, teamName, timeline)
+  }, [timeline, teamId, teamName])
+
+  return null
+}
+
 export default function App() {
   const { user, loading, signOut } = useAuth()
   const connected = useConnectionStatus()
@@ -156,6 +187,44 @@ function AuthenticatedApp({
   const [modalTarget, setModalTarget] = useState<{ id: string; name: string } | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+
+  // Cross-team timeline events for live activity feed
+  const [teamTimelineData, setTeamTimelineData] = useState<Record<string, { teamName: string; events: Record<string, { agentName: string; status: string; fromStatus?: string | null; timestamp: number; message?: string }> }>>({})
+
+  const handleTimelineEvents = useCallback((
+    teamId: string,
+    teamName: string,
+    events: Record<string, { agentName: string; status: string; fromStatus?: string | null; timestamp: number; message?: string }> | null
+  ) => {
+    setTeamTimelineData(prev => {
+      if (!events) {
+        if (!prev[teamId]) return prev
+        const next = { ...prev }
+        delete next[teamId]
+        return next
+      }
+      return { ...prev, [teamId]: { teamName, events } }
+    })
+  }, [])
+
+  const activityEvents = useMemo<ActivityEvent[]>(() => {
+    const all: ActivityEvent[] = []
+    for (const [teamId, { teamName, events }] of Object.entries(teamTimelineData)) {
+      for (const [key, evt] of Object.entries(events)) {
+        all.push({
+          key: `${teamId}-${key}`,
+          teamId,
+          teamName,
+          agentName: evt.agentName,
+          status: evt.status,
+          fromStatus: evt.fromStatus ?? null,
+          timestamp: evt.timestamp,
+          message: evt.message,
+        })
+      }
+    }
+    return all.sort((a, b) => b.timestamp - a.timestamp).slice(0, 50)
+  }, [teamTimelineData])
 
   // Global Cmd+K / Ctrl+K shortcut
   useEffect(() => {
@@ -393,6 +462,13 @@ function AuthenticatedApp({
           </div>
         )}
 
+        {/* Live Activity Feed - grid view only */}
+        {!focusedTeamId && teams.length > 0 && (
+          <div className="mb-6 animate-fade-in">
+            <LiveActivityFeed events={activityEvents} />
+          </div>
+        )}
+
         {/* Search bar - hidden in focused view */}
         {!focusedTeamId && teams.length > 0 && (
           <div className="mb-6 animate-fade-in">
@@ -461,6 +537,11 @@ function AuthenticatedApp({
       {/* Invisible status trackers - one per team */}
       {teams.map(team => (
         <TeamStatusTracker key={team.id} teamId={team.id} onStatus={handleStatusUpdate} onAgentError={handleAgentError} onAgentCounts={handleAgentCounts} />
+      ))}
+
+      {/* Invisible timeline collectors - one per team */}
+      {teams.map(team => (
+        <TimelineDataCollector key={`tl-${team.id}`} teamId={team.id} teamName={team.name} onEvents={handleTimelineEvents} />
       ))}
 
       {/* Create Team Dialog */}

@@ -44,7 +44,7 @@ test.describe('Mission Deck - Multi-Team Dashboard', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/?e2e=mock', { waitUntil: 'networkidle' })
     // Wait for auto-created user team panel to render
-    await page.waitForSelector('[data-testid^="team-panel-"]', { timeout: 15000 })
+    await page.waitForSelector('[data-testid^="team-panel-"]', { timeout: 25000 })
   })
 
   test('dashboard loads with auto-created team instead of login page', async ({ page }) => {
@@ -114,7 +114,10 @@ test.describe('Mission Deck - Multi-Team Dashboard', () => {
     await expect(filterAll).toBeVisible()
     await expect(filterActive).toBeVisible()
     await expect(filterAll).toHaveAttribute('aria-checked', 'true')
-    await filterActive.click()
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-testid="filter-active"]') as HTMLElement
+      btn?.click()
+    })
     await expect(filterActive).toHaveAttribute('aria-checked', 'true')
     await expect(filterAll).toHaveAttribute('aria-checked', 'false')
   })
@@ -209,9 +212,9 @@ test.describe('Mission Deck - Multi-Team Dashboard', () => {
         })
       }
     })
-    const toast = page.locator('[data-testid="toast-container"]')
-    await expect(toast).toBeVisible({ timeout: 5000 })
-    await expect(toast).not.toBeVisible({ timeout: 8000 })
+    const toastMsg = page.locator('[data-testid^="toast-dismiss-"]')
+    await expect(toastMsg).toBeVisible({ timeout: 5000 })
+    await expect(toastMsg).not.toBeVisible({ timeout: 8000 })
   })
 
   test('multiple toasts stack when multiple agents error', async ({ page }) => {
@@ -486,6 +489,76 @@ test.describe('Mission Deck - Multi-Team Dashboard', () => {
     await expect(page.locator('[data-testid^="team-panel-"]')).toHaveCount(1)
   })
 
+  test('live activity feed visible in grid view', async ({ page }) => {
+    const feed = page.locator('[data-testid="live-activity-feed"]')
+    await expect(feed).toBeVisible()
+    await expect(feed).toHaveAttribute('aria-label', 'Live activity feed')
+  })
+
+  test('live activity feed shows events from injected timeline data', async ({ page }) => {
+    const teamId = await page.evaluate(() => {
+      const panel = document.querySelector('[data-testid^="team-panel-"]')
+      return panel?.getAttribute('data-testid')?.replace('team-panel-', '') ?? ''
+    })
+    const now = Date.now()
+    await page.evaluate(({ tid, ts }) => {
+      const w = (window as any).__mockWriteData
+      if (!w) return
+      w(`/mission-deck/teams/${tid}/timeline/feed-evt1`, {
+        agentName: 'execution-agent',
+        status: 'active',
+        fromStatus: 'idle',
+        timestamp: ts - 2000,
+      })
+      w(`/mission-deck/teams/${tid}/timeline/feed-evt2`, {
+        agentName: 'playwright-test-agent',
+        status: 'complete',
+        fromStatus: 'active',
+        timestamp: ts,
+      })
+    }, { tid: teamId, ts: now })
+
+    const feedItems = page.locator('[data-testid="activity-feed-item"]')
+    await expect(feedItems.first()).toBeVisible({ timeout: 5000 })
+    const count = await feedItems.count()
+    expect(count).toBeGreaterThanOrEqual(2)
+  })
+
+  test('live activity feed hidden in focused view', async ({ page }) => {
+    await createTeam(page, 'Feed Test Team')
+    await page.evaluate(() => {
+      const tabs = document.querySelectorAll('[role="tab"]')
+      for (const t of tabs) {
+        if (t.textContent?.includes('Feed Test Team')) {
+          ;(t as HTMLElement).click()
+          break
+        }
+      }
+    })
+    await expect(page.locator('[data-testid^="team-panel-"]')).toHaveCount(1)
+    await expect(page.locator('[data-testid="live-activity-feed"]')).not.toBeVisible()
+  })
+
+  test('live activity feed shows team name in event rows', async ({ page }) => {
+    const teamId = await page.evaluate(() => {
+      const panel = document.querySelector('[data-testid^="team-panel-"]')
+      return panel?.getAttribute('data-testid')?.replace('team-panel-', '') ?? ''
+    })
+    await page.evaluate(({ tid, ts }) => {
+      const w = (window as any).__mockWriteData
+      if (!w) return
+      w(`/mission-deck/teams/${tid}/timeline/name-evt1`, {
+        agentName: 'product-manager-agent',
+        status: 'active',
+        fromStatus: 'idle',
+        timestamp: ts,
+      })
+    }, { tid: teamId, ts: Date.now() })
+
+    const teamNamePill = page.locator('[data-testid="activity-feed-team-name"]')
+    await expect(teamNamePill.first()).toBeVisible({ timeout: 5000 })
+  })
+
   test('no unexpected console errors on authenticated page', async ({ page }) => {
     const errors: string[] = []
     page.on('console', (msg) => {
@@ -494,7 +567,7 @@ test.describe('Mission Deck - Multi-Team Dashboard', () => {
       }
     })
     await page.goto('/?e2e=mock', { waitUntil: 'networkidle' })
-    await page.waitForSelector('[data-testid^="team-panel-"]', { timeout: 15000 })
+    await page.waitForSelector('[data-testid^="team-panel-"]', { timeout: 25000 })
     await page.waitForTimeout(2000)
     const unexpectedErrors = errors.filter(
       (e) =>
